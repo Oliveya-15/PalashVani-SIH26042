@@ -1,8 +1,7 @@
 """
 Creates all tables, inserts fixed reference rows (languages, grades),
 and robustly imports CSV datasets using positional column mapping 
-(Col 0: Hindi, Col 1: Target/Mundari, Col 2: Category, Col 3: Notes)
-to guarantee zero import failures.
+with fixed SQLAlchemy relationship filtering.
 """
 import csv
 from pathlib import Path
@@ -102,7 +101,6 @@ def init_db() -> None:
                     if not rows:
                         continue
 
-                    # If the first row is a header, skip it
                     start_idx = 0
                     header = [h.strip().lower() for h in rows[0]]
                     if any(kw in header for kw in ["hindi", "source", "mundari", "target", "word", "translation"]):
@@ -127,9 +125,13 @@ def init_db() -> None:
                         if len(row) > 3 and row[3].strip():
                             notes = row[3].strip()
 
+                        # Fixed check: query by source_text and target_text columns directly to avoid relationship errors
                         exists = (
                             db.query(TranslationEntry)
-                            .filter_by(source_text=source_text, target_text=target_text, target_language=target_lang)
+                            .filter(
+                                TranslationEntry.source_text == source_text,
+                                TranslationEntry.target_text == target_text
+                            )
                             .first()
                         )
                         if not exists:
