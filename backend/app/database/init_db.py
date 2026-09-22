@@ -1,7 +1,7 @@
 """
 Creates all tables, inserts fixed reference rows (languages, grades),
-parses and loads the seed dataset, and seeds the curriculum chapters.
-Safe to run repeatedly -- every insert/import here is idempotent.
+automatically discovers and imports all CSV datasets from data/raw/,
+and seeds the curriculum chapters. Completely idempotent and automated.
 """
 import csv
 from pathlib import Path
@@ -75,44 +75,60 @@ def init_db() -> None:
                 db.add(CurriculumGrade(grade_number=number, label_en=label_en, label_hi=label_hi))
         db.commit()
 
-        # 3. Load Dataset CSV (hindi_mundari_seed.csv)
-        project_root = Path(__file__).resolve().parents[2]
-        csv_path = project_root / "data" / "raw" / "hindi_mundari_seed.csv"
+        # 3. Auto-discover and import all CSV files from data/raw/
+        project_root = Path(__file__).resolve().parents[3]
+        raw_data_dir = project_root / "data" / "raw"
 
-        if csv_path.exists():
-            with open(csv_path, mode="r", encoding="utf-8") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    source_text = row.get("hindi", "").strip()
-                    target_text = row.get("mundari", "").strip()
-                    category = row.get("category", "general").strip()
-                    notes = row.get("notes", "").strip() or None
+        if raw_data_dir.exists():
+            csv_files = list(raw_data_dir.glob("*.csv"))
+            for csv_file in csv_files:
+                filename_lower = csv_file.name.lower()
+                target_lang = "mundari"
+                if "santali" in filename_lower:
+                    target_lang = "santali"
+                elif "ho" in filename_lower:
+                    target_lang = "ho"
 
-                    if not source_text or not target_text:
-                        continue
+                with open(csv_file, mode="r", encoding="utf-8") as f:
+                    reader = csv.DictReader(f)
+                    imported_count = 0
+                    for row in reader:
+                        source_text = row.get("hindi") or row.get("source") or row.get("source_text")
+                        if source_text:
+                            source_text = source_text.strip()
 
-                    # Check if entry already exists to avoid duplicates
-                    exists = (
-                        db.query(TranslationEntry)
-                        .filter_by(source_text=source_text, target_text=target_text, target_language="mundari")
-                        .first()
-                    )
-                    if not exists:
-                        db.add(TranslationEntry(
-                            source_language="hi",
-                            target_language="mundari",
-                            source_text=source_text,
-                            target_text=target_text,
-                            category=category,
-                            source_type="dataset",
-                            confidence=1.0,
-                            verified=True,
-                            notes=notes,
-                        ))
-            db.commit()
-            logger.info("Dataset CSV successfully imported into translation entries.")
+                        target_text = row.get(target_lang) or row.get("target") or row.get("target_text") or row.get("mundari")
+                        if target_text:
+                            target_text = target_text.strip()
+
+                        if not source_text or not target_text:
+                            continue
+
+                        category = row.get("category", "general").strip()
+                        notes = row.get("notes", "").strip() or None
+
+                        exists = (
+                            db.query(TranslationEntry)
+                            .filter_by(source_text=source_text, target_text=target_text, target_language=target_lang)
+                            .first()
+                        )
+                        if not exists:
+                            db.add(TranslationEntry(
+                                source_language="hi",
+                                target_language=target_lang,
+                                source_text=source_text,
+                                target_text=target_text,
+                                category=category,
+                                source_type="dataset",
+                                confidence=1.0,
+                                verified=True,
+                                notes=notes,
+                            ))
+                            imported_count += 1
+                    db.commit()
+                    logger.info(f"Auto-imported {imported_count} entries from {csv_file.name}")
         else:
-            logger.warning(f"Dataset CSV not found at {csv_path}")
+            logger.warning(f"Raw data directory not found at {raw_data_dir}")
 
         # 4. Seed Curriculum Subjects & Chapters & Link Entries
         for grade_number, subj_en, subj_hi, icon, chapters in CURRICULUM_PLAN:
@@ -153,7 +169,7 @@ def init_db() -> None:
                         entry.chapter_id = chapter.id
 
         db.commit()
-        logger.info("Database initialised, dataset imported, and curriculum auto-seeded successfully.")
+        logger.info("Database initialised, datasets auto-discovered & imported, and curriculum auto-seeded successfully.")
     finally:
         db.close()
 
