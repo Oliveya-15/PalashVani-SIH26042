@@ -1,7 +1,7 @@
 """
 Creates all tables, inserts fixed reference rows (languages, grades),
-automatically discovers and imports all CSV datasets from data/raw/,
-and seeds the curriculum chapters. Completely idempotent and automated.
+robustly discovers and imports all CSV datasets from data/raw/ (supporting 
+both local and Docker container paths), and seeds the curriculum chapters.
 """
 import csv
 from pathlib import Path
@@ -54,6 +54,22 @@ CURRICULUM_PLAN = [
 ]
 
 
+def find_raw_data_dir() -> Path:
+    """Checks multiple possible locations for the data/raw folder to support local and Docker runs."""
+    current_file = Path(__file__).resolve()
+    possible_paths = [
+        current_file.parents[4] / "data" / "raw",  # If rooted deep
+        current_file.parents[3] / "data" / "raw",  # Project root from backend/app/database
+        current_file.parents[2] / "data" / "raw",  # Alternative nesting
+        Path.cwd() / "data" / "raw",               # Current working directory (local)
+        Path.cwd().parent / "data" / "raw",        # Parent of cwd (Docker backend working dir)
+    ]
+    for p in possible_paths:
+        if p.exists() and p.is_dir():
+            return p
+    return possible_paths[1]  # Default fallback
+
+
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
@@ -76,8 +92,8 @@ def init_db() -> None:
         db.commit()
 
         # 3. Auto-discover and import all CSV files from data/raw/
-        project_root = Path(__file__).resolve().parents[3]
-        raw_data_dir = project_root / "data" / "raw"
+        raw_data_dir = find_raw_data_dir()
+        logger.info(f"Looking for raw datasets in: {raw_data_dir}")
 
         if raw_data_dir.exists():
             csv_files = list(raw_data_dir.glob("*.csv"))
@@ -128,7 +144,7 @@ def init_db() -> None:
                     db.commit()
                     logger.info(f"Auto-imported {imported_count} entries from {csv_file.name}")
         else:
-            logger.warning(f"Raw data directory not found at {raw_data_dir}")
+            logger.warning(f"Raw data directory could not be resolved at {raw_data_dir}")
 
         # 4. Seed Curriculum Subjects & Chapters & Link Entries
         for grade_number, subj_en, subj_hi, icon, chapters in CURRICULUM_PLAN:
