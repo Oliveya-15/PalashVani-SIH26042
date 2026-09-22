@@ -132,9 +132,10 @@ def init_db() -> None:
                         if len(row) > 2 and row[2].strip():
                             category = row[2].strip()
 
-                        notes = None
-                        if len(row) > 3 and row[3].strip():
-                            notes = row[3].strip()
+                        # REMOVED: notes parsing (not in current model)
+                        # notes = None
+                        # if len(row) > 3 and row[3].strip():
+                        #     notes = row[3].strip()
 
                         exists = (
                             db.query(TranslationEntry)
@@ -153,7 +154,7 @@ def init_db() -> None:
                                 category=category,
                                 # REMOVED: confidence=1.0 (not in current model)
                                 verified=True,
-                                notes=notes,
+                                # REMOVED: notes=notes (not in current model)
                             ))
                             imported_count += 1
                     db.commit()
