@@ -1,7 +1,7 @@
 """
 Creates all tables, inserts fixed reference rows (languages, grades),
-robustly discovers and imports all CSV datasets from data/raw/ (supporting 
-both local and Docker container paths), and seeds the curriculum chapters.
+robustly discovers and imports all CSV datasets from data/raw/ with 
+detailed logging for Render deployment visibility, and seeds curriculum.
 """
 import csv
 from pathlib import Path
@@ -55,22 +55,24 @@ CURRICULUM_PLAN = [
 
 
 def find_raw_data_dir() -> Path:
-    """Checks multiple possible locations for the data/raw folder to support local and Docker runs."""
     current_file = Path(__file__).resolve()
     possible_paths = [
-        current_file.parents[4] / "data" / "raw",  # If rooted deep
-        current_file.parents[3] / "data" / "raw",  # Project root from backend/app/database
-        current_file.parents[2] / "data" / "raw",  # Alternative nesting
-        Path.cwd() / "data" / "raw",               # Current working directory (local)
-        Path.cwd().parent / "data" / "raw",        # Parent of cwd (Docker backend working dir)
+        current_file.parents[3] / "data" / "raw",  # /app/data/raw
+        current_file.parents[2] / "data" / "raw",  
+        Path("/app/data/raw"),                     # Absolute Docker path
+        Path.cwd() / "data" / "raw",               
+        Path.cwd().parent / "data" / "raw",        
     ]
+    logger.info(f"Checking raw data paths from current file: {current_file}")
     for p in possible_paths:
+        logger.info(f"Testing path: {p} (Exists: {p.exists()}, IsDir: {p.is_dir() if p.exists() else False})")
         if p.exists() and p.is_dir():
             return p
-    return possible_paths[1]  # Default fallback
+    return possible_paths[0]
 
 
 def init_db() -> None:
+    logger.info("Starting init_db execution...")
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
@@ -93,10 +95,12 @@ def init_db() -> None:
 
         # 3. Auto-discover and import all CSV files from data/raw/
         raw_data_dir = find_raw_data_dir()
-        logger.info(f"Looking for raw datasets in: {raw_data_dir}")
+        logger.info(f"Resolved raw_data_dir to: {raw_data_dir}")
 
         if raw_data_dir.exists():
             csv_files = list(raw_data_dir.glob("*.csv"))
+            logger.info(f"Found CSV files: {[f.name for f in csv_files]}")
+            
             for csv_file in csv_files:
                 filename_lower = csv_file.name.lower()
                 target_lang = "mundari"
@@ -142,9 +146,9 @@ def init_db() -> None:
                             ))
                             imported_count += 1
                     db.commit()
-                    logger.info(f"Auto-imported {imported_count} entries from {csv_file.name}")
+                    logger.info(f"Successfully imported {imported_count} entries from {csv_file.name}")
         else:
-            logger.warning(f"Raw data directory could not be resolved at {raw_data_dir}")
+            logger.error(f"CRITICAL: Raw data directory NOT found at any checked location!")
 
         # 4. Seed Curriculum Subjects & Chapters & Link Entries
         for grade_number, subj_en, subj_hi, icon, chapters in CURRICULUM_PLAN:
@@ -185,7 +189,10 @@ def init_db() -> None:
                         entry.chapter_id = chapter.id
 
         db.commit()
-        logger.info("Database initialised, datasets auto-discovered & imported, and curriculum auto-seeded successfully.")
+        logger.info("Database initialization & dataset import completed successfully.")
+    except Exception as e:
+        logger.exception(f"Error during init_db: {e}")
+        db.rollback()
     finally:
         db.close()
 
