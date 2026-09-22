@@ -11,19 +11,32 @@ classmate's laptop than a full migration chain. Alembic *is* included
 next step before any multi-environment / PostgreSQL deployment, where
 create_all() is no longer safe once real data exists.
 """
+import sys
+from pathlib import Path
+
 from app.core.logging_config import get_logger
 from app.database.session import Base, SessionLocal, engine
 from app.models.models import CurriculumGrade, Language
 
+# Add project root so we can import scripts safely
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+try:
+    from scripts.seed_curriculum import seed as seed_curriculum_chapters
+except ImportError:
+    seed_curriculum_chapters = None
+
 logger = get_logger("init_db")
 
 LANGUAGES = [
-    # code,      name_en,        name_hi,          script,        is_tribal, status,    bhashini
-    ("hi",       "Hindi",        "हिन्दी",           "Devanagari",  False,     "active",  True),
-    ("en",       "English",      "अंग्रेज़ी",          "Latin",       False,     "active",  True),
-    ("mundari",  "Mundari",      "मुंडारी",           "Devanagari",  True,      "active",  False),
-    ("ho",       "Ho",           "हो",               "Warang Citi / Devanagari", True, "planned", False),
-    ("santali",  "Santali",      "संताली",           "Ol Chiki / Devanagari",    True, "planned", False),
+    # code,      name_en,       name_hi,          script,        is_tribal, status,    bhashini
+    ("hi",       "Hindi",       "हिन्दी",          Devanagari,  False,     "active",  True),
+    ("en",       "English",     "अंग्रेज़ी",          Latin,       False,     "active",  True),
+    ("mundari",  "Mundari",     "मुंडारी",          Devanagari,  True,      "active",  False),
+    ("ho",       "Ho",          "हो",               Warang Citi / Devanagari, True, "planned", False),
+    ("santali",  "Santali",     "संताली",          Ol Chiki / Devanagari,    True, "planned", False),
 ]
 
 GRADES = [
@@ -53,6 +66,15 @@ def init_db() -> None:
             if number not in existing_grades:
                 db.add(CurriculumGrade(grade_number=number, label_en=label_en, label_hi=label_hi))
         db.commit()
+
+        # Automatically seed curriculum chapters and link corpus entries
+        if seed_curriculum_chapters:
+            try:
+                seed_curriculum_chapters()
+                logger.info("Curriculum chapters auto-seeded successfully.")
+            except Exception as e:
+                logger.warning(f"Curriculum seeding note: {e}")
+
         logger.info("Database initialised (tables + reference data).")
     finally:
         db.close()
