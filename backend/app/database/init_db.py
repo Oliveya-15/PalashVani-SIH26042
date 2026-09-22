@@ -151,7 +151,7 @@ def init_db() -> None:
                                 source_text=source_text,
                                 target_text=target_text,
                                 category=category,
-                                confidence=1.0,
+                                # REMOVED: confidence=1.0 (not in current model)
                                 verified=True,
                                 notes=notes,
                             ))
