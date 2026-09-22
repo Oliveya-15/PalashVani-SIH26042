@@ -1,0 +1,32 @@
+# --- Python / backend ---
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- Data (local database + generated artifacts; source CSVs ARE tracked) ---
+data/processed/*.db
+data/processed/*.sqlite3
+
+# --- Node / frontend ---
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/coverage/
+
+# --- Environment secrets ---
+.env
+frontend/.env
+
+# --- Editor / OS ---
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db

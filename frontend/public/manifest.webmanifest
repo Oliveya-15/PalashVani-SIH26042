@@ -1,0 +1,12 @@
+{
+  "name": "PalashVani",
+  "short_name": "PalashVani",
+  "description": "Hindi to Mundari translation and mother-tongue FLN classroom companion",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FBFAF8",
+  "theme_color": "#0B3D29",
+  "icons": [
+    { "src": "/favicon.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

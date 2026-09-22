@@ -1,0 +1,55 @@
+# Optional. Local development does NOT require Docker at all -- see the
+# README's "Quick start (no Docker)" section, which is the simpler and
+# recommended path for a first run. This file exists for anyone who
+# prefers containers, and to demonstrate the PostgreSQL migration path
+# described in docs/database.md.
+#
+# Default (SQLite, matches local dev):
+#   docker compose up --build
+#
+# With PostgreSQL instead of SQLite:
+#   docker compose --profile postgres up --build
+#   (then set DATABASE_URL=postgresql+psycopg2://palashvani:palashvani@db:5432/palashvani
+#    in a .env file before starting, and add psycopg2-binary to backend/requirements.txt)
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      APP_ENV: production
+      CORS_ORIGINS: '["http://localhost:5173","http://localhost:4173"]'
+    # Optional: copy .env.example to .env in the project root first, then
+    # uncomment the next two lines to pass extra settings (e.g. BHASHINI_*)
+    # through to the container.
+    # env_file:
+    #   - .env
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "4173:4173"
+    depends_on:
+      - backend
+
+  # Optional PostgreSQL service -- only starts with `--profile postgres`.
+  db:
+    image: postgres:16-alpine
+    profiles: ["postgres"]
+    environment:
+      POSTGRES_USER: palashvani
+      POSTGRES_PASSWORD: palashvani
+      POSTGRES_DB: palashvani
+    ports:
+      - "5432:5432"
+    volumes:
+      - palashvani_pg_data:/var/lib/postgresql/data
+
+volumes:
+  palashvani_pg_data:

@@ -1,0 +1,11 @@
+# Optional AI upgrade: adds the real semantic-embedding matching stage
+# (see docs/ai-pipeline.md, Stage 4). Install this SEPARATELY, after the
+# core app is already confirmed working with requirements.txt -- it pulls
+# in PyTorch, which is a large (several hundred MB) download and can take
+# a while on a slow connection. Never required for grading/demo purposes;
+# the app works correctly without it (it just skips straight from fuzzy
+# matching to an honest "no match").
+#
+# Install with:
+#   pip install -r requirements-optional.txt
+sentence-transformers==3.1.1
