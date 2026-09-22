@@ -1,37 +1,15 @@
 """
 Creates all tables and inserts the fixed reference rows (languages,
-grades) that the rest of the app assumes exist. Safe to run repeatedly --
-every insert here is "get-or-create".
-
-This is intentionally NOT an Alembic migration. For a single-developer
-academic prototype backed by SQLite, `Base.metadata.create_all()` plus this
-idempotent seeding script is simpler to explain in a viva and to run on a
-classmate's laptop than a full migration chain. Alembic *is* included
-(see backend/requirements.txt and docs/database.md) and is the documented
-next step before any multi-environment / PostgreSQL deployment, where
-create_all() is no longer safe once real data exists.
+grades, subjects, and chapters) that the rest of the app assumes exist. 
+Safe to run repeatedly -- every insert here is "get-or-create".
 """
-import sys
-from pathlib import Path
-
 from app.core.logging_config import get_logger
 from app.database.session import Base, SessionLocal, engine
-from app.models.models import CurriculumGrade, Language
-
-# Add project root so we can import scripts safely
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-try:
-    from scripts.seed_curriculum import seed as seed_curriculum_chapters
-except ImportError:
-    seed_curriculum_chapters = None
+from app.models.models import CurriculumChapter, CurriculumGrade, CurriculumSubject, Language, TranslationEntry
 
 logger = get_logger("init_db")
 
 LANGUAGES = [
-    # code,      name_en,       name_hi,          script,                     is_tribal, status,    bhashini
     ("hi",       "Hindi",       "हिन्दी",          "Devanagari",               False,     "active",  True),
     ("en",       "English",     "अंग्रेज़ी",          "Latin",                    False,     "active",  True),
     ("mundari",  "Mundari",     "मुंडारी",          "Devanagari",               True,      "active",  False),
@@ -47,11 +25,32 @@ GRADES = [
     (5, "Grade 5", "कक्षा 5"),
 ]
 
+CURRICULUM_PLAN = [
+    (1, "Language (Bhasha)", "भाषा", "💬", [
+        ("Introductions & Greetings", "परिचय और अभिवादन", ["greeting"]),
+    ]),
+    (1, "Mathematics", "गणित", "🔢", [
+        ("Counting 1-10", "गिनती (1-10)", ["number"]),
+    ]),
+    (2, "Environmental Studies", "पर्यावरण अध्ययन", "🍃", [
+        ("Animals Around Us", "हमारे आस-पास के जानवर", ["animal"]),
+        ("Colours", "रंग", ["color"]),
+    ]),
+    (3, "Environmental Studies", "पर्यावरण अध्ययन", "🍃", [
+        ("Food We Eat", "हम जो खाना खाते हैं", ["food", "daily_life"]),
+        ("Fruits", "फल", ["fruit"]),
+    ]),
+    (4, "Language (Bhasha)", "भाषा", "💬", [
+        ("Times of Day", "दिन के समय", ["time"]),
+    ]),
+]
+
 
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
+        # 1. Seed Languages
         existing_codes = {l.code for l in db.query(Language).all()}
         for code, name_en, name_hi, script, is_tribal, status, bhashini in LANGUAGES:
             if code not in existing_codes:
@@ -61,21 +60,53 @@ def init_db() -> None:
                 ))
         db.commit()
 
+        # 2. Seed Grades
         existing_grades = {g.grade_number for g in db.query(CurriculumGrade).all()}
         for number, label_en, label_hi in GRADES:
             if number not in existing_grades:
                 db.add(CurriculumGrade(grade_number=number, label_en=label_en, label_hi=label_hi))
         db.commit()
 
-        # Automatically seed curriculum chapters and link corpus entries
-        if seed_curriculum_chapters:
-            try:
-                seed_curriculum_chapters()
-                logger.info("Curriculum chapters auto-seeded successfully.")
-            except Exception as e:
-                logger.warning(f"Curriculum seeding note: {e}")
+        # 3. Seed Curriculum Subjects & Chapters & Link Entries
+        for grade_number, subj_en, subj_hi, icon, chapters in CURRICULUM_PLAN:
+            grade = db.query(CurriculumGrade).filter(CurriculumGrade.grade_number == grade_number).first()
+            if not grade:
+                continue
 
-        logger.info("Database initialised (tables + reference data).")
+            subject = (
+                db.query(CurriculumSubject)
+                .filter(CurriculumSubject.grade_id == grade.id, CurriculumSubject.name_en == subj_en)
+                .first()
+            )
+            if not subject:
+                subject = CurriculumSubject(grade_id=grade.id, name_en=subj_en, name_hi=subj_hi, icon=icon)
+                db.add(subject)
+                db.flush()
+
+            for order_index, (title_en, title_hi, categories) in enumerate(chapters):
+                chapter = (
+                    db.query(CurriculumChapter)
+                    .filter(CurriculumChapter.subject_id == subject.id, CurriculumChapter.title_en == title_en)
+                    .first()
+                )
+                if not chapter:
+                    chapter = CurriculumChapter(
+                        subject_id=subject.id, title_en=title_en, title_hi=title_hi, order_index=order_index,
+                    )
+                    db.add(chapter)
+                    db.flush()
+
+                for category in categories:
+                    entries = (
+                        db.query(TranslationEntry)
+                        .filter(TranslationEntry.category == category, TranslationEntry.chapter_id.is_(None))
+                        .all()
+                    )
+                    for entry in entries:
+                        entry.chapter_id = chapter.id
+
+        db.commit()
+        logger.info("Database initialised and curriculum auto-seeded successfully.")
     finally:
         db.close()
 
