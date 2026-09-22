@@ -1,7 +1,8 @@
 """
 Creates all tables, inserts fixed reference rows (languages, grades),
-robustly discovers and imports all CSV datasets from data/raw/ with 
-case-insensitive column parsing, and seeds curriculum chapters.
+and robustly imports CSV datasets using positional column mapping 
+(Col 0: Hindi, Col 1: Target/Mundari, Col 2: Category, Col 3: Notes)
+to guarantee zero import failures.
 """
 import csv
 from pathlib import Path
@@ -75,12 +76,9 @@ def init_db() -> None:
                 db.add(CurriculumGrade(grade_number=number, label_en=label_en, label_hi=label_hi))
         db.commit()
 
-        # 3. Locate data/raw relative to project root 
-        # init_db.py is at backend/app/database/init_db.py -> parents[3] points to project root (palashvani/)
+        # 3. Locate data/raw folder
         project_root = Path(__file__).resolve().parents[3]
         raw_data_dir = project_root / "data" / "raw"
-        
-        # Fallback absolute path for Docker container environment
         if not raw_data_dir.exists():
             raw_data_dir = Path("/app/data/raw")
 
@@ -99,31 +97,35 @@ def init_db() -> None:
                     target_lang = "ho"
 
                 with open(csv_file, mode="r", encoding="utf-8-sig") as f:
-                    reader = csv.DictReader(f)
+                    reader = csv.reader(f)
+                    rows = list(reader)
+                    if not rows:
+                        continue
+
+                    # If the first row is a header, skip it
+                    start_idx = 0
+                    header = [h.strip().lower() for h in rows[0]]
+                    if any(kw in header for kw in ["hindi", "source", "mundari", "target", "word", "translation"]):
+                        start_idx = 1
+
                     imported_count = 0
-                    for row in reader:
-                        # Normalize all keys to lowercase so case differences (e.g. 'Hindi' vs 'hindi') don't break lookups
-                        norm_row = {k.strip().lower(): v.strip() for k, v in row.items() if k and v}
+                    for row in rows[start_idx:]:
+                        if len(row) < 2:
+                            continue
                         
-                        # Flexible source column lookup
-                        source_text = None
-                        for key in ["hindi", "source", "source_text", "word", "english"]:
-                            if key in norm_row and norm_row[key]:
-                                source_text = norm_row[key]
-                                break
+                        source_text = row[0].strip()
+                        target_text = row[1].strip()
                         
-                        # Flexible target column lookup
-                        target_text = None
-                        for key in [target_lang, "mundari", "target", "target_text", "translation"]:
-                            if key in norm_row and norm_row[key]:
-                                target_text = norm_row[key]
-                                break
-                        
-                        if not source_text or not target_text:
+                        if not source_text or not target_text or source_text.lower() in ["hindi", "source", "word"]:
                             continue
 
-                        category = norm_row.get("category", "general")
-                        notes = norm_row.get("notes") or None
+                        category = "general"
+                        if len(row) > 2 and row[2].strip():
+                            category = row[2].strip()
+
+                        notes = None
+                        if len(row) > 3 and row[3].strip():
+                            notes = row[3].strip()
 
                         exists = (
                             db.query(TranslationEntry)
