@@ -1,7 +1,7 @@
 """
 Creates all tables, inserts fixed reference rows (languages, grades),
 and robustly imports CSV datasets using positional column mapping 
-with fixed SQLAlchemy relationship filtering.
+with valid TranslationEntry model attributes.
 """
 import csv
 from pathlib import Path
@@ -125,7 +125,6 @@ def init_db() -> None:
                         if len(row) > 3 and row[3].strip():
                             notes = row[3].strip()
 
-                        # Fixed check: query by source_text and target_text columns directly to avoid relationship errors
                         exists = (
                             db.query(TranslationEntry)
                             .filter(
@@ -141,7 +140,6 @@ def init_db() -> None:
                                 source_text=source_text,
                                 target_text=target_text,
                                 category=category,
-                                source_type="dataset",
                                 confidence=1.0,
                                 verified=True,
                                 notes=notes,
