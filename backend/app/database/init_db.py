@@ -1,11 +1,19 @@
 """
-Creates all tables and inserts the fixed reference rows (languages,
-grades, subjects, and chapters) that the rest of the app assumes exist. 
-Safe to run repeatedly -- every insert here is "get-or-create".
+Creates all tables, inserts fixed reference rows (languages, grades),
+parses and loads the seed dataset, and seeds the curriculum chapters.
+Safe to run repeatedly -- every insert/import here is idempotent.
 """
+import csv
+from pathlib import Path
 from app.core.logging_config import get_logger
 from app.database.session import Base, SessionLocal, engine
-from app.models.models import CurriculumChapter, CurriculumGrade, CurriculumSubject, Language, TranslationEntry
+from app.models.models import (
+    CurriculumChapter,
+    CurriculumGrade,
+    CurriculumSubject,
+    Language,
+    TranslationEntry,
+)
 
 logger = get_logger("init_db")
 
@@ -67,7 +75,46 @@ def init_db() -> None:
                 db.add(CurriculumGrade(grade_number=number, label_en=label_en, label_hi=label_hi))
         db.commit()
 
-        # 3. Seed Curriculum Subjects & Chapters & Link Entries
+        # 3. Load Dataset CSV (hindi_mundari_seed.csv)
+        project_root = Path(__file__).resolve().parents[2]
+        csv_path = project_root / "data" / "raw" / "hindi_mundari_seed.csv"
+
+        if csv_path.exists():
+            with open(csv_path, mode="r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    source_text = row.get("hindi", "").strip()
+                    target_text = row.get("mundari", "").strip()
+                    category = row.get("category", "general").strip()
+                    notes = row.get("notes", "").strip() or None
+
+                    if not source_text or not target_text:
+                        continue
+
+                    # Check if entry already exists to avoid duplicates
+                    exists = (
+                        db.query(TranslationEntry)
+                        .filter_by(source_text=source_text, target_text=target_text, target_language="mundari")
+                        .first()
+                    )
+                    if not exists:
+                        db.add(TranslationEntry(
+                            source_language="hi",
+                            target_language="mundari",
+                            source_text=source_text,
+                            target_text=target_text,
+                            category=category,
+                            source_type="dataset",
+                            confidence=1.0,
+                            verified=True,
+                            notes=notes,
+                        ))
+            db.commit()
+            logger.info("Dataset CSV successfully imported into translation entries.")
+        else:
+            logger.warning(f"Dataset CSV not found at {csv_path}")
+
+        # 4. Seed Curriculum Subjects & Chapters & Link Entries
         for grade_number, subj_en, subj_hi, icon, chapters in CURRICULUM_PLAN:
             grade = db.query(CurriculumGrade).filter(CurriculumGrade.grade_number == grade_number).first()
             if not grade:
@@ -106,7 +153,7 @@ def init_db() -> None:
                         entry.chapter_id = chapter.id
 
         db.commit()
-        logger.info("Database initialised and curriculum auto-seeded successfully.")
+        logger.info("Database initialised, dataset imported, and curriculum auto-seeded successfully.")
     finally:
         db.close()
 
