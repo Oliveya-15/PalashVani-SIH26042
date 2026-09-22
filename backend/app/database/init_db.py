@@ -1,7 +1,7 @@
 """
 Creates all tables, inserts fixed reference rows (languages, grades),
 robustly discovers and imports all CSV datasets from data/raw/ with 
-detailed logging for Render deployment visibility, and seeds curriculum.
+case-insensitive column parsing, and seeds curriculum chapters.
 """
 import csv
 from pathlib import Path
@@ -54,25 +54,7 @@ CURRICULUM_PLAN = [
 ]
 
 
-def find_raw_data_dir() -> Path:
-    current_file = Path(__file__).resolve()
-    possible_paths = [
-        current_file.parents[3] / "data" / "raw",  # /app/data/raw
-        current_file.parents[2] / "data" / "raw",  
-        Path("/app/data/raw"),                     # Absolute Docker path
-        Path.cwd() / "data" / "raw",               
-        Path.cwd().parent / "data" / "raw",        
-    ]
-    logger.info(f"Checking raw data paths from current file: {current_file}")
-    for p in possible_paths:
-        logger.info(f"Testing path: {p} (Exists: {p.exists()}, IsDir: {p.is_dir() if p.exists() else False})")
-        if p.exists() and p.is_dir():
-            return p
-    return possible_paths[0]
-
-
 def init_db() -> None:
-    logger.info("Starting init_db execution...")
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
@@ -93,14 +75,21 @@ def init_db() -> None:
                 db.add(CurriculumGrade(grade_number=number, label_en=label_en, label_hi=label_hi))
         db.commit()
 
-        # 3. Auto-discover and import all CSV files from data/raw/
-        raw_data_dir = find_raw_data_dir()
-        logger.info(f"Resolved raw_data_dir to: {raw_data_dir}")
+        # 3. Locate data/raw relative to project root 
+        # init_db.py is at backend/app/database/init_db.py -> parents[3] points to project root (palashvani/)
+        project_root = Path(__file__).resolve().parents[3]
+        raw_data_dir = project_root / "data" / "raw"
+        
+        # Fallback absolute path for Docker container environment
+        if not raw_data_dir.exists():
+            raw_data_dir = Path("/app/data/raw")
 
-        if raw_data_dir.exists():
+        logger.info(f"Scanning raw data directory at: {raw_data_dir}")
+
+        if raw_data_dir.exists() and raw_data_dir.is_dir():
             csv_files = list(raw_data_dir.glob("*.csv"))
             logger.info(f"Found CSV files: {[f.name for f in csv_files]}")
-            
+
             for csv_file in csv_files:
                 filename_lower = csv_file.name.lower()
                 target_lang = "mundari"
@@ -109,23 +98,32 @@ def init_db() -> None:
                 elif "ho" in filename_lower:
                     target_lang = "ho"
 
-                with open(csv_file, mode="r", encoding="utf-8") as f:
+                with open(csv_file, mode="r", encoding="utf-8-sig") as f:
                     reader = csv.DictReader(f)
                     imported_count = 0
                     for row in reader:
-                        source_text = row.get("hindi") or row.get("source") or row.get("source_text")
-                        if source_text:
-                            source_text = source_text.strip()
-
-                        target_text = row.get(target_lang) or row.get("target") or row.get("target_text") or row.get("mundari")
-                        if target_text:
-                            target_text = target_text.strip()
-
+                        # Normalize all keys to lowercase so case differences (e.g. 'Hindi' vs 'hindi') don't break lookups
+                        norm_row = {k.strip().lower(): v.strip() for k, v in row.items() if k and v}
+                        
+                        # Flexible source column lookup
+                        source_text = None
+                        for key in ["hindi", "source", "source_text", "word", "english"]:
+                            if key in norm_row and norm_row[key]:
+                                source_text = norm_row[key]
+                                break
+                        
+                        # Flexible target column lookup
+                        target_text = None
+                        for key in [target_lang, "mundari", "target", "target_text", "translation"]:
+                            if key in norm_row and norm_row[key]:
+                                target_text = norm_row[key]
+                                break
+                        
                         if not source_text or not target_text:
                             continue
 
-                        category = row.get("category", "general").strip()
-                        notes = row.get("notes", "").strip() or None
+                        category = norm_row.get("category", "general")
+                        notes = norm_row.get("notes") or None
 
                         exists = (
                             db.query(TranslationEntry)
@@ -148,7 +146,7 @@ def init_db() -> None:
                     db.commit()
                     logger.info(f"Successfully imported {imported_count} entries from {csv_file.name}")
         else:
-            logger.error(f"CRITICAL: Raw data directory NOT found at any checked location!")
+            logger.warning(f"Raw data directory not found at {raw_data_dir}")
 
         # 4. Seed Curriculum Subjects & Chapters & Link Entries
         for grade_number, subj_en, subj_hi, icon, chapters in CURRICULUM_PLAN:
@@ -182,17 +180,15 @@ def init_db() -> None:
                 for category in categories:
                     entries = (
                         db.query(TranslationEntry)
-                        .filter(TranslationEntry.category == category, TranslationEntry.chapter_id.is_(None))
+                        .filter(TranslationEntry.category == category)
                         .all()
                     )
                     for entry in entries:
-                        entry.chapter_id = chapter.id
+                        if not entry.chapter_id:
+                            entry.chapter_id = chapter.id
 
         db.commit()
-        logger.info("Database initialization & dataset import completed successfully.")
-    except Exception as e:
-        logger.exception(f"Error during init_db: {e}")
-        db.rollback()
+        logger.info("Database initialization and CSV data import completed successfully.")
     finally:
         db.close()
 
