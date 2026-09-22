@@ -75,13 +75,24 @@ def init_db() -> None:
                 db.add(CurriculumGrade(grade_number=number, label_en=label_en, label_hi=label_hi))
         db.commit()
 
-        # 3. Locate data/raw folder
+        # 3. Locate data/raw folder with robust path resolution for Render/Docker
         project_root = Path(__file__).resolve().parents[3]
         raw_data_dir = project_root / "data" / "raw"
-        if not raw_data_dir.exists():
-            raw_data_dir = Path("/app/data/raw")
 
-        logger.info(f"Scanning raw data directory at: {raw_data_dir}")
+        if not raw_data_dir.exists():
+            # Fallbacks for different deployment structures (Render, Docker, etc.)
+            alternative_paths = [
+                Path.cwd() / "data" / "raw",
+                Path.cwd().parent / "data" / "raw",
+                Path("/opt/render/project/src/data/raw"),
+                Path("/app/data/raw"),
+            ]
+            for alt_path in alternative_paths:
+                if alt_path.exists():
+                    raw_data_dir = alt_path
+                    break
+
+        logger.info(f"Attempting to scan raw data directory at: {raw_data_dir.resolve()}")
 
         if raw_data_dir.exists() and raw_data_dir.is_dir():
             csv_files = list(raw_data_dir.glob("*.csv"))
