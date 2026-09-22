@@ -80,7 +80,6 @@ def init_db() -> None:
         raw_data_dir = project_root / "data" / "raw"
 
         if not raw_data_dir.exists():
-            # Fallbacks for different deployment structures (Render, Docker, etc.)
             alternative_paths = [
                 Path.cwd() / "data" / "raw",
                 Path.cwd().parent / "data" / "raw",
@@ -98,13 +97,25 @@ def init_db() -> None:
             csv_files = list(raw_data_dir.glob("*.csv"))
             logger.info(f"Found CSV files: {[f.name for f in csv_files]}")
 
+            # Build a map of language code -> integer ID (e.g., {"hi": 1, "mundari": 3})
+            lang_map = {l.code: l.id for l in db.query(Language).all()}
+            logger.info(f"Language ID map: {lang_map}")
+
+            source_lang_id = lang_map.get("hi")
+
             for csv_file in csv_files:
                 filename_lower = csv_file.name.lower()
-                target_lang = "mundari"
+                target_lang_code = "mundari"
                 if "santali" in filename_lower:
-                    target_lang = "santali"
+                    target_lang_code = "santali"
                 elif "ho" in filename_lower:
-                    target_lang = "ho"
+                    target_lang_code = "ho"
+
+                target_lang_id = lang_map.get(target_lang_code)
+
+                if not source_lang_id or not target_lang_id:
+                    logger.warning(f"Missing language ID for {target_lang_code}. Skipping {csv_file.name}")
+                    continue
 
                 with open(csv_file, mode="r", encoding="utf-8-sig") as f:
                     reader = csv.reader(f)
@@ -132,11 +143,6 @@ def init_db() -> None:
                         if len(row) > 2 and row[2].strip():
                             category = row[2].strip()
 
-                        # REMOVED: notes parsing (not in current model)
-                        # notes = None
-                        # if len(row) > 3 and row[3].strip():
-                        #     notes = row[3].strip()
-
                         exists = (
                             db.query(TranslationEntry)
                             .filter(
@@ -147,14 +153,13 @@ def init_db() -> None:
                         )
                         if not exists:
                             db.add(TranslationEntry(
-                                source_language="hi",
-                                target_language=target_lang,
+                                source_language_id=source_lang_id,       # FIXED: Integer ID
+                                target_language_id=target_lang_id,       # FIXED: Integer ID
                                 source_text=source_text,
                                 target_text=target_text,
+                                normalized_source=source_text.strip().lower(), # FIXED: Required field
                                 category=category,
-                                # REMOVED: confidence=1.0 (not in current model)
                                 verified=True,
-                                # REMOVED: notes=notes (not in current model)
                             ))
                             imported_count += 1
                     db.commit()
