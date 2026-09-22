@@ -1,10 +1,9 @@
-# Build context is the PROJECT ROOT (see docker-compose.yml: `context: .`),
-# not backend/ -- this keeps the on-disk layout inside the container
-# identical to local development (backend/app/... next to data/...), which
-# is what backend/app/core/config.py's BASE_DIR calculation assumes.
 FROM python:3.11-slim
 
 WORKDIR /app
+
+# Create the data directories so SQLite can write the database file there
+RUN mkdir -p data/processed
 
 COPY backend/requirements.txt backend/requirements.txt
 RUN pip install --no-cache-dir -r backend/requirements.txt
