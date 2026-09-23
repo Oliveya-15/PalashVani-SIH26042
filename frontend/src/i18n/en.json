@@ -24,7 +24,9 @@
     "about": "About",
     "feedback": "Feedback",
     "skipToContent": "Skip to main content",
-    "openMenu": "Open menu"
+    "openMenu": "Open menu",
+    "login": "Login",
+    "profile": "Profile"
   },
   "home": {
     "heroEyebrow": "SIH26042 · Smart Education",
@@ -210,5 +212,34 @@
     "title": "Page not found",
     "body": "The page you're looking for doesn't exist.",
     "cta": "Go home"
+  },
+  "auth": {
+    "loginTitle": "Log in",
+    "loginSubtitle": "Welcome back — log in to access your PalashVani profile.",
+    "emailLabel": "Email address",
+    "passwordLabel": "Password",
+    "loggingIn": "Logging in…",
+    "loginBtn": "Log in",
+    "noAccountYet": "Don't have an account yet?",
+    "registerLink": "Register here",
+    "registerTitle": "Create your account",
+    "registerSubtitle": "Register as a teacher or student to save your profile with PalashVani.",
+    "fullNameLabel": "Full name",
+    "passwordHint": "At least 8 characters.",
+    "roleLabel": "I am a…",
+    "roleTeacher": "Teacher",
+    "roleStudent": "Student",
+    "roleAdmin": "Administrator",
+    "schoolLabel": "School name (optional)",
+    "districtLabel": "District (optional)",
+    "registering": "Creating account…",
+    "registerBtn": "Create account",
+    "haveAccount": "Already have an account?",
+    "loginLink": "Log in here",
+    "profileTitle": "My profile",
+    "editProfileTitle": "Edit profile",
+    "memberSince": "Member since",
+    "profileSaved": "Profile updated successfully.",
+    "logoutBtn": "Log out"
   }
 }

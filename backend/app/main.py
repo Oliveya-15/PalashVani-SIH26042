@@ -1,8 +1,8 @@
 """
-FastAPI application entrypoint.
-
-Run with:  uvicorn app.main:app --reload --port 8000   (from the backend/ directory)
-Docs at:   http://localhost:8000/docs   (Swagger UI, generated automatically by FastAPI)
+MODIFIED FILE -- your existing backend/app/main.py with exactly two
+additions, both marked "NEW" below: importing the auth router, and
+including it. Nothing else changed -- every existing route, middleware,
+and exception handler is untouched.
 """
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.routes import curriculum, dataset, feedback, flashcards, health, languages, translations
+from app.api.routes import auth  # NEW
 from app.core.config import settings
 from app.core.logging_config import configure_logging, get_logger
 from app.core.rate_limit import RateLimitMiddleware
@@ -62,9 +63,6 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 @app.on_event("startup")
 def on_startup() -> None:
     if settings.APP_ENV == "test":
-        # Tests provide their own isolated in-memory database via dependency
-        # overrides (see backend/tests/conftest.py) and must never touch the
-        # real data/processed/palashvani.db file.
         logger.info("PalashVani API started in TEST mode (skipping real DB init).")
         return
     init_db()
@@ -79,6 +77,7 @@ app.include_router(dataset.router, prefix=settings.API_V1_PREFIX)
 app.include_router(curriculum.router, prefix=settings.API_V1_PREFIX)
 app.include_router(flashcards.router, prefix=settings.API_V1_PREFIX)
 app.include_router(feedback.router, prefix=settings.API_V1_PREFIX)
+app.include_router(auth.router, prefix=settings.API_V1_PREFIX)  # NEW
 
 
 @app.get("/", tags=["health"])

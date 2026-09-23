@@ -1,6 +1,6 @@
-// Mirrors backend/app/schemas/schemas.py -- kept in sync by hand since this
-// is a small academic prototype without a codegen pipeline (see
-// docs/api.md "Why this approach" for the trade-off discussion).
+// MODIFIED FILE -- your existing frontend/src/types/index.ts with the
+// "Auth" section added at the bottom. Everything above is identical to
+// your current file.
 
 export interface Language {
   id: number;
@@ -140,3 +140,43 @@ export interface HealthResponse {
 
 export type UiLanguage = "en" | "hi";
 export type Theme = "light" | "dark";
+
+// ---------------------------------------------------------------- NEW: auth --
+export type UserRole = "teacher" | "student" | "admin";
+export type SelfRegisterableRole = "teacher" | "student";
+
+export interface AuthUser {
+  id: number;
+  full_name: string;
+  email: string;
+  role: UserRole;
+  school_name: string;
+  district: string;
+  created_at: string;
+}
+
+export interface RegisterPayload {
+  full_name: string;
+  email: string;
+  password: string;
+  role: SelfRegisterableRole;
+  school_name?: string;
+  district?: string;
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface ProfileUpdatePayload {
+  full_name?: string;
+  school_name?: string;
+  district?: string;
+}
+
+export interface AuthResponse {
+  access_token: string;
+  token_type: string;
+  user: AuthUser;
+}

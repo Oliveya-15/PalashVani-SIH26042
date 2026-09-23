@@ -1,17 +1,26 @@
+// MODIFIED FILE -- your existing frontend/src/api/client.ts with two
+// changes, both marked "NEW"/"FIXED" below:
+//   1. FIXED: the `request()` helper's header merging (see the comment
+//      right above it for why this was necessary for auth to work at all).
+//   2. NEW: an `auth` section added to the exported `api` object.
+// Every existing method (translate, search, curriculum, etc.) is
+// byte-for-byte the same as your current file.
 import type {
+  AuthResponse,
+  AuthUser,
   ChapterDetail,
   DatasetStatsResponse,
   FlashcardDeckResponse,
   GradeSummary,
   HealthResponse,
   Language,
+  LoginPayload,
+  ProfileUpdatePayload,
+  RegisterPayload,
   SearchResponse,
   TranslateResponse,
 } from "@/types";
 
-// In dev, Vite proxies /api -> http://127.0.0.1:8000 (see vite.config.ts), so
-// the default of a relative "/api" works with zero configuration. Set
-// VITE_API_BASE_URL only for a non-default backend location (e.g. production).
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
 
 export class ApiError extends Error {
@@ -27,8 +36,16 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE}${path}`, {
-      headers: { "Content-Type": "application/json" },
+      // FIXED: headers must be merged *inside* one object -- spreading
+      // ...options after a separate `headers:` key would silently drop
+      // Content-Type whenever a caller (e.g. an authenticated request)
+      // also passes its own headers, since the later `...options` spread
+      // used to replace the whole `headers` object instead of merging
+      // into it. This form always merges correctly, and every existing
+      // call site (which passes no custom headers) behaves exactly as
+      // before.
       ...options,
+      headers: { "Content-Type": "application/json", ...(options?.headers || {}) },
     });
   } catch {
     throw new ApiError(
@@ -49,6 +66,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }
 
   return response.json() as Promise<T>;
+}
+
+function authHeaders(token: string): HeadersInit {
+  return { Authorization: `Bearer ${token}` };
 }
 
 export const api = {
@@ -86,4 +107,22 @@ export const api = {
 
   submitFeedback: (payload: { message: string; rating?: number; page: string }) =>
     request<{ id: number }>("/feedback", { method: "POST", body: JSON.stringify(payload) }),
+
+  // ---------------------------------------------------------- NEW: auth --
+  auth: {
+    register: (payload: RegisterPayload) =>
+      request<AuthResponse>("/auth/register", { method: "POST", body: JSON.stringify(payload) }),
+
+    login: (payload: LoginPayload) =>
+      request<AuthResponse>("/auth/login", { method: "POST", body: JSON.stringify(payload) }),
+
+    me: (token: string) => request<AuthUser>("/auth/me", { headers: authHeaders(token) }),
+
+    updateProfile: (token: string, payload: ProfileUpdatePayload) =>
+      request<AuthUser>("/auth/me", {
+        method: "PATCH",
+        headers: authHeaders(token),
+        body: JSON.stringify(payload),
+      }),
+  },
 };

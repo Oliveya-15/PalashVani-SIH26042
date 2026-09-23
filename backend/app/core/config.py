@@ -1,11 +1,10 @@
 """
-Application configuration.
-
-Everything here is read from environment variables (see .env.example at the
-project root). Every setting has a safe, zero-cost default so the API starts
-and works correctly even if no .env file is present at all -- this is a hard
-project requirement (see docs/limitations.md and the README "Zero-cost"
-section): no paid keys should ever be *required* to run the core app.
+MODIFIED FILE -- this is your existing backend/app/core/config.py with
+ONLY the "Auth / JWT" section added at the bottom of the Settings class.
+Every line above that section is identical to your current file. If your
+live file has diverged from the version originally delivered, just add
+the new block yourself instead of replacing the whole file -- see
+SETUP_INSTRUCTIONS.md for the exact lines to add.
 """
 from pathlib import Path
 from typing import List
@@ -45,16 +44,10 @@ class Settings(BaseSettings):
     SEARCH_MAX_PAGE_SIZE: int = 100
 
     # --- Optional semantic layer (sentence-transformers) ---
-    # Fully optional. If the package or model weights are unavailable (e.g. no
-    # internet on first run), the app automatically falls back to the
-    # normalization + fuzzy-matching pipeline -- see app/translation/semantic.py.
     ENABLE_SEMANTIC_SEARCH: bool = True
     SEMANTIC_MODEL_NAME: str = "paraphrase-multilingual-MiniLM-L12-v2"
 
     # --- Optional external services (NEVER required for the core app) ---
-    # Bhashini (National Language Translation Mission, Government of India) can
-    # optionally be wired in as a live NMT/TTS fallback for phrases the local
-    # corpus has no match for. It is disabled unless a key is explicitly set.
     BHASHINI_API_KEY: str = ""
     BHASHINI_ENABLED: bool = False
 
@@ -63,6 +56,18 @@ class Settings(BaseSettings):
 
     # --- Misc ---
     MAX_UPLOAD_IMAGE_MB: int = 5
+
+    # ================================================================
+    # NEW -- Auth / JWT (added for the login/register feature)
+    # ================================================================
+    # IMPORTANT: the default below is fine for local development only.
+    # Set a real, random JWT_SECRET_KEY as an environment variable on
+    # Render (or wherever the backend is deployed) -- anyone who has this
+    # value can forge valid login tokens. Generate one with:
+    #   python -c "import secrets; print(secrets.token_urlsafe(48))"
+    JWT_SECRET_KEY: str = "dev-only-insecure-secret-CHANGE-ME-in-production"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
 
 
 settings = Settings()

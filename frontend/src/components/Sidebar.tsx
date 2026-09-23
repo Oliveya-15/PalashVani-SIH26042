@@ -11,8 +11,12 @@ import {
   MessageSquare,
   Menu,
   X,
+  LogIn,
+  LogOut,
+  UserCircle,
 } from "lucide-react";
 import { useI18n } from "@/i18n/I18nProvider";
+import { useAuth } from "@/hooks/useAuth";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const ROUTES = [
@@ -27,14 +31,15 @@ const ROUTES = [
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useI18n();
+  const { user, isAuthenticated, logout } = useAuth();
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
-      isActive ? "bg-secondary text-white" : "text-ink-muted hover:bg-surface-alt hover:text-secondary"
+    `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${isActive ? "bg-secondary text-white" : "text-ink-muted hover:bg-surface-alt hover:text-secondary"
     }`;
 
   return (
     <div className="flex h-full flex-col">
+      {/* Original Logo format */}
       <NavLink to="/" className="flex items-center gap-2 px-2 py-1" aria-label="PalashVani home" onClick={onNavigate}>
         <img src="/full_logo.png" alt="PalashVani" className="h-12 w-auto object-contain" />
       </NavLink>
@@ -48,7 +53,49 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         ))}
       </nav>
 
-      <div className="space-y-3 border-t border-border pt-4">
+      {/* Bottom Section: Auth block, Feedback, Language Switcher */}
+      <div className="space-y-4 border-t border-border pt-4">
+
+        {/* Auth Block */}
+        {isAuthenticated && user ? (
+          <div className="flex flex-col gap-2">
+            <NavLink
+              to="/profile"
+              onClick={onNavigate}
+              className="flex items-center gap-3 rounded-xl bg-surface-alt px-3 py-2.5 text-sm font-semibold text-ink-muted transition-colors hover:bg-surface-alt hover:text-secondary"
+            >
+              <UserCircle size={20} aria-hidden="true" />
+              <div className="flex flex-col text-left">
+                <span className="text-sm font-semibold text-ink">Profile</span>
+                <span className="text-xs text-ink-muted truncate">{user.full_name}</span>
+              </div>
+            </NavLink>
+
+            {/* UPDATED: Logout button with subtle red hover effect */}
+            <button
+              type="button"
+              onClick={() => {
+                logout();
+                onNavigate?.();
+              }}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-ink-muted transition-all duration-200 hover:bg-red-50 hover:text-red-600"
+            >
+              <LogOut size={18} aria-hidden="true" />
+              {t("auth.logoutBtn")}
+            </button>
+          </div>
+        ) : (
+          /* UPDATED: Animated Semi-circle Login Button with zoom and lighter green hover */
+          <NavLink
+            to="/login"
+            onClick={onNavigate}
+            className="group flex w-full items-center justify-center gap-0 rounded-full border-2 border-secondary bg-transparent px-[2px] py-2.5 text-sm font-semibold text-secondary transition-all duration-300 hover:scale-105 hover:bg-secondary/90 hover:text-white hover:shadow-lg hover:shadow-secondary/30"
+          >
+            <LogIn size={18} className="transition-transform duration-300 group-hover:-translate-x-1" aria-hidden="true" />
+            {t("nav.login")}
+          </NavLink>
+        )}
+
         <NavLink
           to="/feedback"
           onClick={onNavigate}
@@ -57,6 +104,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <MessageSquare size={18} aria-hidden="true" />
           {t("nav.feedback")}
         </NavLink>
+
         <div className="px-2">
           <LanguageSwitcher />
         </div>
