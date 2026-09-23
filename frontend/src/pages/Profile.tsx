@@ -120,7 +120,11 @@ export default function Profile() {
         </button>
       </form>
 
-      <button type="button" onClick={handleLogout} className="btn-secondary mt-6">
+      <button
+        type="button"
+        onClick={handleLogout}
+        className="btn-secondary mt-6 bg-danger/10 border-danger/30 text-danger hover:bg-danger/20 hover:border-danger/50"
+      >
         <LogOut size={16} aria-hidden="true" />
         {t("auth.logoutBtn")}
       </button>

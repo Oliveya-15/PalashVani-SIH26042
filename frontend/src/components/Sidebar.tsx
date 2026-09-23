@@ -11,12 +11,12 @@ import {
   MessageSquare,
   Menu,
   X,
-  LogIn,
-  LogOut,
-  UserCircle,
+  LogIn,   
+  LogOut,  
+  UserCircle, 
 } from "lucide-react";
 import { useI18n } from "@/i18n/I18nProvider";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth"; 
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const ROUTES = [
@@ -31,10 +31,11 @@ const ROUTES = [
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useI18n();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth(); 
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${isActive ? "bg-secondary text-white" : "text-ink-muted hover:bg-surface-alt hover:text-secondary"
+    `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
+      isActive ? "bg-secondary text-white" : "text-ink-muted hover:bg-surface-alt hover:text-secondary"
     }`;
 
   return (
@@ -55,7 +56,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       {/* Bottom Section: Auth block, Feedback, Language Switcher */}
       <div className="space-y-4 border-t border-border pt-4">
-
+        
         {/* Auth Block */}
         {isAuthenticated && user ? (
           <div className="flex flex-col gap-2">
@@ -70,7 +71,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                 <span className="text-xs text-ink-muted truncate">{user.full_name}</span>
               </div>
             </NavLink>
-
+            
             {/* UPDATED: Logout button with subtle red hover effect */}
             <button
               type="button"
