@@ -177,6 +177,7 @@ npm install
 
 (macOS/Linux: replace `.venv\Scripts\Activate.ps1` with `source .venv/bin/activate`; every other command is identical.)
 
+
 ## Database Setup
 
 Nothing to install. The backend creates `data/processed/palashvani.db`
@@ -273,6 +274,31 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 [`docs/deployment.md`](docs/deployment.md) for hosting options (Vercel,
 Render, Docker), all free-tier compatible.
 
+
+## After Implementation 
+
+**Terminal 1 — backend setup:**
+
+```powershell
+cd backend
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+uvicorn app.main:app --reload --port 8000
+```
+
+**Terminal 2 — frontend setup:**
+
+```powershell
+cd frontend
+npm run dev
+```
+
+**For Testing:**
+```test100100@gmail.com
+password123
+```
+
+
 ## API Documentation
 
 Auto-generated interactive docs at `/docs` (Swagger) and `/redoc` while the
@@ -318,6 +344,7 @@ description, Open Graph + Twitter card metadata, `robots.txt`, and
 - No paid API key is ever required for the core app to function; the one
   optional external integration (Bhashini) is disabled unless explicitly
   configured — see `backend/app/ai/bhashini_stub.py`.
+
 
 ## Troubleshooting
 
