@@ -1,9 +1,15 @@
-def test_exact_match_translation(client):
+# MODIFIED FILE -- your existing backend/tests/test_translations.py.
+# Only change: every request now passes `headers=auth_headers` (a new
+# fixture from conftest.py) since POST /api/translations requires a
+# logged-in user now. Every assertion is unchanged.
+
+
+def test_exact_match_translation(client, auth_headers):
     response = client.post("/api/translations", json={
         "text": "नमस्ते",
         "source_language": "hi",
         "target_language": "mundari",
-    })
+    }, headers=auth_headers)
     assert response.status_code == 200
     body = response.json()
     assert body["method"] == "exact"
@@ -14,23 +20,23 @@ def test_exact_match_translation(client):
     assert body["ai_assisted"] is False
 
 
-def test_punctuation_and_whitespace_are_normalized(client):
+def test_punctuation_and_whitespace_are_normalized(client, auth_headers):
     response = client.post("/api/translations", json={
         "text": "  आप कैसे हैं?? ",
         "source_language": "hi",
         "target_language": "mundari",
-    })
+    }, headers=auth_headers)
     body = response.json()
     assert body["result_text"] == "आम चिलेका मेना मा?"
     assert body["method"] in ("exact", "fuzzy")
 
 
-def test_unknown_phrase_returns_honest_no_match(client):
+def test_unknown_phrase_returns_honest_no_match(client, auth_headers):
     response = client.post("/api/translations", json={
         "text": "यह एक बहुत ही असामान्य वाक्य है जो डेटासेट में नहीं है",
         "source_language": "hi",
         "target_language": "mundari",
-    })
+    }, headers=auth_headers)
     assert response.status_code == 200
     body = response.json()
     assert body["method"] == "none"
@@ -38,19 +44,31 @@ def test_unknown_phrase_returns_honest_no_match(client):
     assert "No verified match" in body["message"]
 
 
-def test_empty_text_is_rejected_gracefully(client):
-    response = client.post("/api/translations", json={"text": "", "source_language": "hi", "target_language": "mundari"})
+def test_empty_text_is_rejected_gracefully(client, auth_headers):
+    response = client.post(
+        "/api/translations",
+        json={"text": "", "source_language": "hi", "target_language": "mundari"},
+        headers=auth_headers,
+    )
     # min_length=1 on the schema -> FastAPI validation error, not a 500
     assert response.status_code == 422
 
 
-def test_unknown_language_pair(client):
+def test_unknown_language_pair(client, auth_headers):
     response = client.post("/api/translations", json={
         "text": "नमस्ते",
         "source_language": "hi",
         "target_language": "klingon",
-    })
+    }, headers=auth_headers)
     assert response.status_code == 200
     body = response.json()
     assert body["method"] == "none"
     assert "Unknown language pair" in body["message"]
+
+
+def test_translate_requires_login(client):
+    """NEW -- confirms the auth requirement itself is actually enforced."""
+    response = client.post("/api/translations", json={
+        "text": "नमस्ते", "source_language": "hi", "target_language": "mundari",
+    })
+    assert response.status_code == 401

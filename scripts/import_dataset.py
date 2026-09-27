@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
 """
+MODIFIED FILE -- your existing scripts/import_dataset.py with ONE change,
+marked inline below: it now calls `seed_reference_data()` instead of the
+removed `init_db()` (which used to also create tables via
+Base.metadata.create_all() -- that responsibility moved to Alembic
+migrations, see backend/app/database/init_db.py's docstring). Run
+`alembic upgrade head` once before running this script on a fresh
+database. Everything else in this file is unchanged.
+
 Imports a validated Hindi-<->tribal-language CSV into the database.
 
 Usage (from the project root, backend venv active):
@@ -28,7 +36,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "backend"))
 
 from validate_dataset import validate  # noqa: E402  (scripts/ is on sys.path when run as above)
 
-from app.database.init_db import init_db  # noqa: E402
+from app.database.init_db import seed_reference_data  # noqa: E402 (renamed; see that file's docstring)
 from app.database.session import SessionLocal  # noqa: E402
 from app.models.models import DatasetMetadata, Language, TranslationEntry  # noqa: E402
 
@@ -38,7 +46,7 @@ def parse_bool(value: str) -> bool:
 
 
 def import_csv(csv_path: Path, source_code: str, target_code: str) -> None:
-    init_db()
+    seed_reference_data()  # MODIFIED -- was init_db(); schema itself now comes from `alembic upgrade head`, run first (see SETUP_INSTRUCTIONS.md)
     db = SessionLocal()
     try:
         source_lang = db.query(Language).filter(Language.code == source_code).first()

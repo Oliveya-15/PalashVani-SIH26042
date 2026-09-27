@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """
-NEW FILE -- creates an admin account directly in the database.
-
-Admin accounts are intentionally NOT available through the public
-POST /api/auth/register endpoint (see app/models/user.py's docstring) --
-this script is the deliberate, government-system-appropriate substitute:
-run locally, by whoever controls the database, never exposed over HTTP.
+MODIFIED FILE -- your existing scripts/create_admin.py with one change,
+marked "MODIFIED" below: it no longer calls the now-removed `init_db()`
+(schema comes from `alembic upgrade head` now -- run that first on a
+fresh database, see SETUP_INSTRUCTIONS.md). Everything else, including
+why admin accounts aren't self-registerable, is unchanged.
 
 Usage (from the project root, backend venv active):
     python scripts/create_admin.py --name "Dept Admin" --email admin@palashvani.gov.in --password "choose-a-strong-one"
@@ -18,13 +17,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "backend"))
 
 from app.core.security import hash_password  # noqa: E402
-from app.database.init_db import init_db  # noqa: E402
 from app.database.session import SessionLocal  # noqa: E402
 from app.models.user import User  # noqa: E402
 
 
 def create_admin(name: str, email: str, password: str) -> None:
-    init_db()
+    # MODIFIED: previously called init_db() here to also create tables;
+    # that's now Alembic's job (`alembic upgrade head`) -- see this
+    # script's module docstring.
     db = SessionLocal()
     try:
         existing = db.query(User).filter(User.email == email.lower()).first()

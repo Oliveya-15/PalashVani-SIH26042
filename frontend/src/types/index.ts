@@ -180,3 +180,64 @@ export interface AuthResponse {
   token_type: string;
   user: AuthUser;
 }
+
+export interface AdminUser {
+  id: number;
+  full_name: string;
+  email: string;
+  role: UserRole;
+  school_name: string;
+  district: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface AdminActivity {
+  id: number;
+  user_id: number | null;
+  user_name: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: number | null;
+  detail: string;
+  created_at: string;
+}
+
+export interface AdminOverview {
+  total_users: number;
+  active_users: number;
+  teacher_count: number;
+  student_count: number;
+  admin_count: number;
+  pending_submissions: number;
+  verified_entries: number;
+  feedback_count: number;
+  recent_activity: AdminActivity[];
+}
+
+export interface AdminSubmission {
+  id: number;
+  submitted_by_id: number;
+  content_type: "dataset" | "curriculum";
+  source_language_code: string;
+  target_language_code: string;
+  source_text: string;
+  target_text: string;
+  transliteration: string;
+  category: string;
+  source_citation: string;
+  license: string;
+  chapter_id: number | null;
+  status: "pending" | "approved" | "rejected";
+  review_note: string;
+  created_at: string;
+  reviewed_at: string | null;
+}
+
+export interface AdminFeedback {
+  id: number;
+  message: string;
+  rating: number | null;
+  page: string;
+  created_at: string;
+}

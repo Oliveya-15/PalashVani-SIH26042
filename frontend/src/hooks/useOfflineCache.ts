@@ -35,7 +35,7 @@ export function useOfflineCache() {
 
   const downloadCategory = useCallback(
     async (category: string) => {
-      if (!isSupported) return null;
+      if (!isSupported) return;
       setDownloading(category);
       try {
         const cache = await caches.open(CACHE_NAME);
@@ -52,12 +52,27 @@ export function useOfflineCache() {
         );
         await refresh();
 
-        // Return the data so the caller can use it for generating the Word doc
+        // In addition to the invisible browser-cache copy above (what makes
+        // the app itself keep working offline), also hand the teacher a real,
+        // visible file -- a plain "Download" button that only updates some
+        // internal cache with no file appearing anywhere is confusing, so we
+        // save an actual .json file to their Downloads folder too.
         const [searchResp, deckResp] = responses;
-        const dictionary_entries = searchResp ? (await searchResp.json()).results : [];
-        const flashcards = deckResp ? (await deckResp.json()).cards : [];
-        
-        return { category, dictionary_entries, flashcards };
+        const payload = {
+          category,
+          exported_at: new Date().toISOString(),
+          dictionary_entries: searchResp ? (await searchResp.json()).results : [],
+          flashcards: deckResp ? (await deckResp.json()).cards : [],
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = `palashvani-${category}.json`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(blobUrl);
       } finally {
         setDownloading(null);
       }

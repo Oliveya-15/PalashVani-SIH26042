@@ -1,0 +1,58 @@
+hindi_text,mundari_text,category,transliteration,source,verified
+"नमस्ते","जोहार",greeting,johaar,"Standard Munda/Ho/Mundari greeting; mundariversity.com Basic Conversations in Mundari",TRUE
+"आपका नाम क्या है?","अमाः चीनाः नुतुम?",greeting,"aamaa chinaa nutum?","mundariversity.com - Mundari Tutorial 2: 8 Simple Sentences",TRUE
+"मेरा नाम बिरसा है","ईना नूतुम बिरसा ताना",greeting,"ina nutum birsa taana","mundariversity.com - Basic Conversations in Mundari",TRUE
+"आप कैसे हैं?","आम चिलेका मेना मा?",greeting,"aam chileka mena maa?","mundariversity.com - Basic Conversations in Mundari",TRUE
+"मैं ठीक हूं","इन बेस गी मेना यां",greeting,"in bes gi mena yaan","mundariversity.com - Basic Conversations in Mundari",TRUE
+"एक","मियद",number,miyad,"Omniglot.com - Numbers in Mundari",TRUE
+"दो","बरिया",number,bariya,"Omniglot.com - Numbers in Mundari",TRUE
+"तीन","अपिया",number,apiya,"Omniglot.com - Numbers in Mundari",TRUE
+"चार","उपुनिया",number,upunia,"Omniglot.com - Numbers in Mundari",TRUE
+"पांच","मोड़ेया",number,moreya,"Omniglot.com - Numbers in Mundari",TRUE
+"छह","तुरिया",number,turia,"Omniglot.com - Numbers in Mundari",TRUE
+"सात","एया",number,eya,"Omniglot.com - Numbers in Mundari",TRUE
+"आठ","एरलिया",number,eraliya,"Omniglot.com - Numbers in Mundari",TRUE
+"नौ","अरिया",number,ariya,"Omniglot.com - Numbers in Mundari",TRUE
+"दस","गेलेया",number,geleya,"Omniglot.com - Numbers in Mundari",TRUE
+"सफ़ेद","पुन्डी",color,pundi,"mundariversity.com - Color Names in Mundari",TRUE
+"काला","हेनदे",color,hende,"mundariversity.com - Color Names in Mundari",TRUE
+"लाल","आरअ",color,aara,"mundariversity.com - Color Names in Mundari",TRUE
+"हरा","हरियर",color,hariyar,"mundariversity.com - Color Names in Mundari",TRUE
+"पीला","ससंगअ",color,sasanga,"mundariversity.com - Color Names in Mundari",TRUE
+"नीला","सिरमाअ",color,sirmaa,"mundariversity.com - Color Names in Mundari",TRUE
+"बैल","उरी",animal,uri,"mundariversity.com - Pet Animal Names in Mundari",TRUE
+"भैंस","केडा",animal,keda,"mundariversity.com - Pet Animal Names in Mundari",TRUE
+"गाय","गई",animal,gai,"mundariversity.com - Pet Animal Names in Mundari",TRUE
+"घोड़ा","सदोम",animal,sadom,"mundariversity.com - Pet Animal Names in Mundari",TRUE
+"बिल्ली","बिल्लई",animal,billai,"mundariversity.com - Pet Animal Names in Mundari",TRUE
+"कुत्ता","सेता",animal,seta,"mundariversity.com - Pet Animal Names in Mundari",TRUE
+"बकरी","मेरोम",animal,merom,"mundariversity.com - Pet Animal Names in Mundari",TRUE
+"भेड़","मिंडी",animal,mindi,"mundariversity.com - Pet Animal Names in Mundari",TRUE
+"मछली","हाकू",animal,haku,"mundariversity.com - Pet Animal Names / Food Related Words in Mundari",TRUE
+"सांप","बींग",animal,beeng,"mundariversity.com - Nature words in Mundari",TRUE
+"मेंढक","चोके",animal,choke,"mundariversity.com - Nature words in Mundari",TRUE
+"हाथी","हती",animal,hati,"mundariversity.com - Nature words in Mundari",TRUE
+"लोमड़ी","तुयु",animal,tuyu,"mundariversity.com - Nature words in Mundari",TRUE
+"चावल","चवली",food,chavli,"mundariversity.com - Food Related Words in Mundari (uncooked rice)",TRUE
+"भात","मंडी",food,mandi,"mundariversity.com - Food Related Words in Mundari (cooked rice)",TRUE
+"दाल","दाइल",food,dail,"mundariversity.com - Food Related Words in Mundari",TRUE
+"मांस","जीलु",food,jilu,"mundariversity.com - Food Related Words in Mundari",TRUE
+"केकड़ा","कटकोम",food,katkom,"mundariversity.com - Food Related Words in Mundari",TRUE
+"आलू","आलु",food,aalu,"mundariversity.com - Vegetables Name in Mundari",TRUE
+"टमाटर","टोको",food,toko,"mundariversity.com - Vegetables Name in Mundari",TRUE
+"बैंगन","जनुम टोको",food,"janum toko","mundariversity.com - Vegetables Name in Mundari",TRUE
+"लहसुन","रसुंडि",food,rasundi,"mundariversity.com - Vegetables Name in Mundari",TRUE
+"भिंडी","भेडवा",food,bhedwa,"mundariversity.com - Vegetables Name in Mundari",TRUE
+"मूली","मोराई",food,morai,"mundariversity.com - Vegetables Name in Mundari",TRUE
+"खीरा","तयर",food,tayar,"mundariversity.com - Vegetables Name in Mundari",TRUE
+"आम","उलि",fruit,uli,"mundariversity.com - Fruit names in Mundari",TRUE
+"कटहल","कंठड़",fruit,kanthad,"mundariversity.com - Fruit names in Mundari",TRUE
+"अमरूद","टमरस",fruit,tamras,"mundariversity.com - Fruit names in Mundari",TRUE
+"जामुन","कुदा",fruit,kuda,"mundariversity.com - Fruit names in Mundari",TRUE
+"इमली","जोजो",fruit,jojo,"mundariversity.com - Fruit names in Mundari",TRUE
+"खाना","जोम",daily_life,jom,"mundariversity.com - Essential Words: Food & Taste",TRUE
+"नाश्ता","लोअड़ि",daily_life,loari,"mundariversity.com - Essential Words: Food & Taste",TRUE
+"दिन का भोजन","तिकिन मनडि",daily_life,"tikin mandi","mundariversity.com - Essential Words: Food & Taste",TRUE
+"सुबह","सेतअ",time,seta,"mundariversity.com - Time in Mundari",TRUE
+"शाम","नुदुम",time,nudum,"mundariversity.com - Time in Mundari",TRUE
+"दिन","सिंगी",time,singi,"mundariversity.com - Time in Mundari",TRUE

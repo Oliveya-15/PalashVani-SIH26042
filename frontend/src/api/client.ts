@@ -8,6 +8,11 @@
 import type {
   AuthResponse,
   AuthUser,
+  AdminActivity,
+  AdminFeedback,
+  AdminOverview,
+  AdminSubmission,
+  AdminUser,
   ChapterDetail,
   DatasetStatsResponse,
   FlashcardDeckResponse,
@@ -121,6 +126,69 @@ export const api = {
     updateProfile: (token: string, payload: ProfileUpdatePayload) =>
       request<AuthUser>("/auth/me", {
         method: "PATCH",
+        headers: authHeaders(token),
+        body: JSON.stringify(payload),
+      }),
+  },
+
+  admin: {
+    overview: (token: string) => request<AdminOverview>("/admin/overview", { headers: authHeaders(token) }),
+
+    users: (token: string, params: { q?: string; role?: string; active?: string }) => {
+      const qs = new URLSearchParams();
+      if (params.q) qs.set("q", params.q);
+      if (params.role && params.role !== "all") qs.set("role", params.role);
+      if (params.active && params.active !== "all") qs.set("active", params.active);
+      return request<{ total: number; page: number; page_size: number; users: AdminUser[] }>(
+        `/admin/users?${qs.toString()}`,
+        { headers: authHeaders(token) },
+      );
+    },
+
+    setUserStatus: (token: string, userId: number, isActive: boolean) =>
+      request<AdminUser>(`/admin/users/${userId}/status`, {
+        method: "PATCH",
+        headers: authHeaders(token),
+        body: JSON.stringify({ is_active: isActive }),
+      }),
+
+    setUserRole: (token: string, userId: number, role: string) =>
+      request<AdminUser>(`/admin/users/${userId}/role`, {
+        method: "PATCH",
+        headers: authHeaders(token),
+        body: JSON.stringify({ role }),
+      }),
+
+    submissions: (token: string, status = "pending") =>
+      request<AdminSubmission[]>(`/admin/content/submissions?status=${encodeURIComponent(status)}`, {
+        headers: authHeaders(token),
+      }),
+
+    reviewSubmission: (token: string, id: number, decision: "approve" | "reject", note: string) =>
+      request<AdminSubmission>(`/admin/content/submissions/${id}/${decision}`, {
+        method: "POST",
+        headers: authHeaders(token),
+        body: JSON.stringify({ note }),
+      }),
+
+    activity: (token: string) => request<AdminActivity[]>("/admin/activity?limit=100", { headers: authHeaders(token) }),
+
+    feedback: (token: string) => request<AdminFeedback[]>("/admin/feedback", { headers: authHeaders(token) }),
+  },
+
+  content: {
+    submit: (token: string, payload: {
+      content_type: "dataset" | "curriculum";
+      source_language_code: string;
+      target_language_code: string;
+      source_text: string;
+      target_text: string;
+      category?: string;
+      source_citation?: string;
+      license?: string;
+    }) =>
+      request<AdminSubmission>("/content/submissions", {
+        method: "POST",
         headers: authHeaders(token),
         body: JSON.stringify(payload),
       }),

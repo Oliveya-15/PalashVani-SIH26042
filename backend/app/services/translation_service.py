@@ -1,4 +1,12 @@
 """
+MODIFIED FILE -- your existing backend/app/services/translation_service.py
+with ONE change, marked "NEW" below: `translate()` now accepts an optional
+`user_id` and threads it through to `record_history()`, so every
+translation is attributed to the logged-in user who ran it (this is what
+the admin panel's "active users" and per-user activity counts are built
+on -- see docs/admin-notes.md "Activity tracking"). The entire pipeline
+logic -- all six stages, every threshold, every message -- is unchanged.
+
 TranslationService orchestrates the full hybrid pipeline described in
 docs/ai-pipeline.md and walks through every stage in order, stopping as
 soon as one produces a confident-enough result:
@@ -38,9 +46,36 @@ def _confidence_label(confidence: float, method: str) -> str:
     return "low"
 
 
-def translate(db: Session, text: str, source_code: str, target_code: str) -> TranslateResponse:
+def translate(
+    db: Session, text: str, source_code: str, target_code: str, user_id: int | None = None,  # NEW
+) -> TranslateResponse:
     normalized = normalize_text(text)
     script = detect_script(text)
+
+    # NEW: _finalize is nested here (rather than a module-level function) so
+    # every call site below can stay exactly as it was, while still closing
+    # over `user_id` for the one new argument record_history() needs.
+    def _finalize(input_text, norm, result_text, method, confidence, src, tgt, entry, message, alternatives, ai_assisted: bool = False):
+        history = translation_repo.record_history(
+            db, input_text, result_text, src, tgt, method, confidence,
+            entry.id if entry else None, user_id=user_id,
+        )
+        return TranslateResponse(
+            input_text=input_text,
+            normalized_input=norm,
+            result_text=result_text,
+            method=method,
+            confidence=round(confidence, 3),
+            confidence_label=_confidence_label(confidence, method),
+            verified=bool(entry.verified) if entry and method in ("exact", "normalized", "fuzzy") else False,
+            ai_assisted=ai_assisted,
+            message=message,
+            category=entry.category if entry else None,
+            transliteration=entry.transliteration if entry else None,
+            source_citation=entry.source_citation if entry else None,
+            alternatives=alternatives,
+            history_id=history.id,
+        )
 
     source_lang = translation_repo.get_language_by_code(db, source_code)
     target_lang = translation_repo.get_language_by_code(db, target_code)
@@ -80,7 +115,7 @@ def translate(db: Session, text: str, source_code: str, target_code: str) -> Tra
             f"No dataset is loaded yet for {source_lang.name_en} -> {target_lang.name_en}. "
             "Import a corpus for this language pair (see data/README.md) to enable translation."
         )
-        return _finalize(db, text, normalized, None, "none", 0.0, source_code, target_code, None, message, [])
+        return _finalize(text, normalized, None, "none", 0.0, source_code, target_code, None, message, [])
 
     # --- Stage 2: exact / normalized match ---------------------------------
     exact = find_exact(normalized, entries)
@@ -88,7 +123,7 @@ def translate(db: Session, text: str, source_code: str, target_code: str) -> Tra
         entry = next(e for e in entries if e.id == exact.entry_id)
         message = "Exact match found in the verified dataset."
         return _finalize(
-            db, text, normalized, entry.target_text, "exact", 1.0,
+            text, normalized, entry.target_text, "exact", 1.0,
             source_code, target_code, entry, message, [],
         )
 
@@ -101,7 +136,7 @@ def translate(db: Session, text: str, source_code: str, target_code: str) -> Tra
         message = "Close match found in the verified dataset (minor spelling/spacing difference)."
         alts = _alt_suggestions(fuzzy_candidates[1:4])
         return _finalize(
-            db, text, normalized, entry.target_text, "fuzzy", best_fuzzy.score,
+            text, normalized, entry.target_text, "fuzzy", best_fuzzy.score,
             source_code, target_code, entry, message, alts,
         )
 
@@ -110,7 +145,7 @@ def translate(db: Session, text: str, source_code: str, target_code: str) -> Tra
         message = "Exact dataset match not found. Showing the closest dataset entry (fuzzy match) instead."
         alts = _alt_suggestions(fuzzy_candidates[1:4])
         return _finalize(
-            db, text, normalized, entry.target_text, "fuzzy", best_fuzzy.score,
+            text, normalized, entry.target_text, "fuzzy", best_fuzzy.score,
             source_code, target_code, entry, message, alts,
         )
 
@@ -132,7 +167,7 @@ def translate(db: Session, text: str, source_code: str, target_code: str) -> Tra
             for eid, _t, score in semantic_hits[1:3]
         ]
         return _finalize(
-            db, text, normalized, entry.target_text, "semantic", best_score,
+            text, normalized, entry.target_text, "semantic", best_score,
             source_code, target_code, entry, message, alts, ai_assisted=True,
         )
 
@@ -140,7 +175,7 @@ def translate(db: Session, text: str, source_code: str, target_code: str) -> Tra
     external = bhashini_fallback(text, source_code, target_code)
     if external is not None:
         return _finalize(
-            db, text, normalized, external.text, "external_bhashini", external.confidence,
+            text, normalized, external.text, "external_bhashini", external.confidence,
             source_code, target_code, None, external.message, [], ai_assisted=True,
         )
 
@@ -152,36 +187,10 @@ def translate(db: Session, text: str, source_code: str, target_code: str) -> Tra
         "or use Feedback to suggest this phrase for the corpus."
     )
     return _finalize(
-        db, text, normalized, None, "none", 0.0,
+        text, normalized, None, "none", 0.0,
         source_code, target_code, None, message, nearest_alts,
     )
 
 
 def _alt_suggestions(candidates) -> list[AlternativeSuggestion]:
     return [AlternativeSuggestion(text=c.target_text, similarity=round(c.score, 3)) for c in candidates if c.score > 0]
-
-
-def _finalize(
-    db, input_text, normalized, result_text, method, confidence,
-    source_code, target_code, entry, message, alternatives, ai_assisted: bool = False,
-) -> TranslateResponse:
-    history = translation_repo.record_history(
-        db, input_text, result_text, source_code, target_code, method, confidence,
-        entry.id if entry else None,
-    )
-    return TranslateResponse(
-        input_text=input_text,
-        normalized_input=normalized,
-        result_text=result_text,
-        method=method,
-        confidence=round(confidence, 3),
-        confidence_label=_confidence_label(confidence, method),
-        verified=bool(entry.verified) if entry and method in ("exact", "normalized", "fuzzy") else False,
-        ai_assisted=ai_assisted,
-        message=message,
-        category=entry.category if entry else None,
-        transliteration=entry.transliteration if entry else None,
-        source_citation=entry.source_citation if entry else None,
-        alternatives=alternatives,
-        history_id=history.id,
-    )

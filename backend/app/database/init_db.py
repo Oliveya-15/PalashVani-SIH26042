@@ -1,18 +1,33 @@
 """
-MODIFIED FILE -- your existing backend/app/database/init_db.py with ONE
-line added: `from app.models.user import User`. That import is what
-registers the new `users` table on the shared SQLAlchemy metadata before
-Base.metadata.create_all() runs -- without it, `create_all()` would never
-know the users table exists and it wouldn't get created.
+MODIFIED FILE -- this replaces your existing backend/app/database/init_db.py
+with a real architectural fix for the problem you flagged: schema
+creation and reference-data seeding no longer happen as a side effect of
+the app *starting up*. See docs/admin-notes.md "Why the auto-seed-on-boot
+pattern had to go" for the full explanation; short version:
 
-Everything else below is identical to your current file. If your live
-file has diverged, just add the single import line marked "NEW" below to
-your own copy instead of replacing the whole file.
+  OLD flow: every time the app process started (including Render
+  free-tier's automatic spin-down/spin-up), `init_db()` ran
+  `Base.metadata.create_all()` + re-checked/inserted reference rows. This
+  was a workaround for data not persisting -- and on Render's free tier
+  with a SQLite file on ephemeral disk, that's *exactly* the symptom you'd
+  see: the database quietly resets on every restart, silently deleting
+  every registered user along with it.
+
+  NEW flow: schema changes are explicit, tracked Alembic migrations
+  (backend/migrations/) run once per deploy, not once per boot. Reference
+  data (languages, grades) is seeded by a standalone script
+  (scripts/seed_reference_data.py), also run once per deploy, not on
+  every request cycle. The app itself (app/main.py) no longer touches the
+  database at startup at all -- it just starts serving requests against
+  whatever schema/data is already there.
+
+This file still exposes `seed_reference_data()` (the actual seeding
+logic, unchanged) for that script to call -- it's just no longer wrapped
+in a `create_all()` + wired into the app's startup event.
 """
 from app.core.logging_config import get_logger
-from app.database.session import Base, SessionLocal, engine
+from app.database.session import SessionLocal
 from app.models.models import CurriculumGrade, Language
-from app.models.user import User  # NEW -- registers the `users` table with Base.metadata
 
 logger = get_logger("init_db")
 
@@ -34,8 +49,10 @@ GRADES = [
 ]
 
 
-def init_db() -> None:
-    Base.metadata.create_all(bind=engine)
+def seed_reference_data() -> None:
+    """Idempotent: safe to run multiple times, only ever inserts rows that
+    are missing. Assumes the schema already exists -- run
+    `alembic upgrade head` first. See scripts/seed_reference_data.py."""
     db = SessionLocal()
     try:
         existing_codes = {l.code for l in db.query(Language).all()}
@@ -52,10 +69,15 @@ def init_db() -> None:
             if number not in existing_grades:
                 db.add(CurriculumGrade(grade_number=number, label_en=label_en, label_hi=label_hi))
         db.commit()
-        logger.info("Database initialised (tables + reference data).")
+        logger.info("Reference data seeded (languages + grades).")
     finally:
         db.close()
 
 
+def init_db() -> None:
+    """Compatibility wrapper for legacy imports."""
+    seed_reference_data()
+
+
 if __name__ == "__main__":
-    init_db()
+    seed_reference_data()

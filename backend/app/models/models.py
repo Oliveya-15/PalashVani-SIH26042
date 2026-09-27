@@ -1,4 +1,25 @@
 """
+MODIFIED FILE -- your existing backend/app/models/models.py with three
+additions for the admin panel, all marked "NEW" below:
+
+  1. TranslationEntry.rights_cleared / .rights_note -- the copyright/
+     licensing gate. See docs/admin-notes.md "Why a rights_cleared flag".
+  2. Feedback.user_id -- attributes feedback to the logged-in user who
+     submitted it (nullable, since it's optional metadata, not a hard
+     requirement).
+  3. TranslationHistory.user_id -- attributes each translation request to
+     the logged-in user who made it, which is what the admin panel's
+     "user activity" view is built on.
+
+Every other line, table, and relationship is identical to your current
+file. IMPORTANT: because your database already exists in production
+(unlike a brand-new table, which Base.metadata.create_all() can create by
+itself), these three new COLUMNS need an actual migration to appear in
+your live database -- see backend/migrations/versions/0002_admin_panel.py
+and SETUP_INSTRUCTIONS.md step 3. Simply replacing this file without
+running that migration will make the ORM expect columns the database
+doesn't have yet, which will cause errors.
+
 ORM models.
 
 Schema summary (see docs/database.md for the full entity-relationship
@@ -119,6 +140,14 @@ class TranslationEntry(Base):
     source_citation: Mapped[str] = mapped_column(String(300), default="")
     verified: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # NEW -- copyright / rights-clearance gate (see docs/admin-notes.md
+    # "Why a rights_cleared flag"). Only rows with rights_cleared=True are
+    # ever returned by the public-facing search/translate/curriculum/
+    # flashcards endpoints; everything else is visible in the admin panel
+    # only, pending an administrator's explicit clearance.
+    rights_cleared: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
+    rights_note: Mapped[str] = mapped_column(String(300), default="")
+
     chapter_id: Mapped[int | None] = mapped_column(ForeignKey("curriculum_chapters.id"), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -141,6 +170,7 @@ class TranslationHistory(Base):
     method: Mapped[str] = mapped_column(String(30))          # exact | normalized | fuzzy | semantic | none
     confidence: Mapped[float] = mapped_column(Float, default=0.0)
     matched_entry_id: Mapped[int | None] = mapped_column(ForeignKey("translation_entries.id"), nullable=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)  # NEW -- who ran this translation (see docs/admin-notes.md "Activity tracking")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
@@ -152,6 +182,7 @@ class Feedback(Base):
     rating: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 1-5, optional
     page: Mapped[str] = mapped_column(String(60), default="general")
     translation_history_id: Mapped[int | None] = mapped_column(ForeignKey("translation_history.id"), nullable=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)  # NEW -- who submitted it (nullable: login is required app-wide now, but this stays optional so old rows and any future anonymous channel remain valid)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

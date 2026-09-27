@@ -1,9 +1,13 @@
 """
-Repository layer: the only place in the codebase that writes raw SQLAlchemy
-queries for translation data. Services call this instead of touching the
-ORM directly -- keeps `TranslationService` focused on pipeline logic and
-makes the query layer independently testable/swappable (see
-docs/architecture.md "Why this approach").
+MODIFIED FILE -- your existing backend/app/repositories/translation_repo.py
+with rights-clearance filtering added to every PUBLIC-facing query, marked
+"NEW" below. This is the enforcement half of the copyright-clearance gate
+described in docs/admin-notes.md: `app/api/routes/admin_dataset.py` is the
+only place that can ever see or return an entry with rights_cleared=False,
+because every function here now excludes them.
+
+Everything else -- function signatures, ordering, pagination -- is
+unchanged.
 """
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -25,6 +29,7 @@ def get_entries_for_direction(db: Session, source_lang_id: int, target_lang_id: 
         .filter(
             TranslationEntry.source_language_id == source_lang_id,
             TranslationEntry.target_language_id == target_lang_id,
+            TranslationEntry.rights_cleared.is_(True),  # NEW
         )
         .all()
     )
@@ -37,7 +42,7 @@ def search_entries(
     page: int,
     page_size: int,
 ) -> tuple[list[TranslationEntry], int]:
-    q = db.query(TranslationEntry)
+    q = db.query(TranslationEntry).filter(TranslationEntry.rights_cleared.is_(True))  # NEW
     if query_normalized:
         like = f"%{query_normalized}%"
         q = q.filter(
@@ -59,7 +64,7 @@ def search_entries(
 def get_entries_by_category(db: Session, category: str, limit: int = 50) -> list[TranslationEntry]:
     return (
         db.query(TranslationEntry)
-        .filter(TranslationEntry.category == category)
+        .filter(TranslationEntry.category == category, TranslationEntry.rights_cleared.is_(True))  # NEW
         .order_by(TranslationEntry.id)
         .limit(limit)
         .all()
@@ -67,6 +72,9 @@ def get_entries_by_category(db: Session, category: str, limit: int = 50) -> list
 
 
 def get_distinct_categories(db: Session) -> list[str]:
+    # Category *names* (e.g. "greeting", "number") aren't copyrighted content,
+    # so this intentionally stays unfiltered -- a category with only pending
+    # entries just returns an empty list when actually queried.
     rows = db.query(TranslationEntry.category).distinct().order_by(TranslationEntry.category).all()
     return [r[0] for r in rows]
 
@@ -80,6 +88,7 @@ def record_history(
     method: str,
     confidence: float,
     matched_entry_id: int | None,
+    user_id: int | None = None,  # NEW -- see docs/admin-notes.md "Activity tracking"
 ) -> TranslationHistory:
     history = TranslationHistory(
         source_text=source_text,
@@ -89,6 +98,7 @@ def record_history(
         method=method,
         confidence=confidence,
         matched_entry_id=matched_entry_id,
+        user_id=user_id,  # NEW
     )
     db.add(history)
     db.commit()
@@ -99,7 +109,9 @@ def record_history(
 def category_counts(db: Session) -> dict[str, int]:
     rows = (
         db.query(TranslationEntry.category, func.count(TranslationEntry.id))
+        .filter(TranslationEntry.rights_cleared.is_(True))  # NEW
         .group_by(TranslationEntry.category)
         .all()
     )
     return {category: count for category, count in rows}
+

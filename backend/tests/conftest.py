@@ -1,10 +1,12 @@
 """
-Shared pytest fixtures.
-
-Tests run against an isolated in-memory SQLite database (never the real
-data/processed/palashvani.db file), seeded with a small, deterministic set
-of languages + translation entries so test results never depend on
-whatever the developer has imported locally.
+MODIFIED FILE -- your existing backend/tests/conftest.py. Changes, marked
+"NEW" below: imports the User and AuditLog models (so their tables exist
+in the isolated test database -- same reasoning as
+backend/app/database/init_db.py importing them), and adds two new
+fixtures, `auth_headers` and `admin_headers`, since most existing routes
+now require a logged-in user. The original `db_session` and `client`
+fixtures -- including the seeded languages/entries -- are completely
+unchanged.
 """
 import os
 import sys
@@ -22,6 +24,8 @@ from fastapi.testclient import TestClient
 from app.database.session import Base, get_db
 from app.main import app
 from app.models.models import Language, TranslationEntry
+from app.models.user import User  # NEW -- registers the `users` table for the test DB
+from app.models.audit_log import AuditLog  # NEW -- registers the `audit_log` table for the test DB
 from app.translation.normalize import normalize_text
 
 TEST_DATABASE_URL = "sqlite:///:memory:"
@@ -84,3 +88,39 @@ def client(db_session):
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+
+# ---------------------------------------------------------------- NEW --
+@pytest.fixture()
+def auth_headers(client):
+    """Registers a teacher account through the real endpoint and returns
+    ready-to-use Authorization headers -- for any test on a route that
+    now requires login."""
+    response = client.post("/api/auth/register", json={
+        "full_name": "Test Teacher",
+        "email": "test.teacher@example.com",
+        "password": "a-strong-password",
+        "role": "teacher",
+    })
+    token = response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture()
+def admin_headers(client, db_session):
+    """Creates an admin account directly in the test database (bypassing
+    the public register endpoint, which correctly refuses role='admin' --
+    see app/models/user.py) and returns ready-to-use Authorization headers."""
+    from app.core.security import create_access_token, hash_password
+
+    admin = User(
+        full_name="Test Admin",
+        email="test.admin@example.com",
+        hashed_password=hash_password("a-strong-password"),
+        role="admin",
+    )
+    db_session.add(admin)
+    db_session.commit()
+    db_session.refresh(admin)
+    token = create_access_token(admin.id, admin.role)
+    return {"Authorization": f"Bearer {token}"}

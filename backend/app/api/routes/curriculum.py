@@ -1,7 +1,16 @@
+"""
+MODIFIED FILE -- your existing backend/app/api/routes/curriculum.py.
+Changes, marked "NEW" below: both routes now require a logged-in user, and
+the chapter-detail route now excludes any entry pending rights clearance
+(matching the same rule already applied in translation_repo.py). Route
+paths and response shapes are unchanged.
+"""
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
+from app.core.rbac import require_authenticated  # NEW
+from app.models.user import User  # NEW
 from app.schemas.schemas import ChapterDetailOut, ContentUnitOut, GradeOut, SubjectOut, ChapterOut
 from app.services.curriculum_service import get_chapter_detail, list_grades_with_subjects
 
@@ -9,7 +18,10 @@ router = APIRouter(prefix="/curriculum", tags=["curriculum"])
 
 
 @router.get("/grades", response_model=list[GradeOut])
-def get_grades(db: Session = Depends(get_db)) -> list[GradeOut]:
+def get_grades(
+    current_user: User = Depends(require_authenticated),  # NEW
+    db: Session = Depends(get_db),
+) -> list[GradeOut]:
     grades = list_grades_with_subjects(db)
     return [
         GradeOut(
@@ -29,7 +41,7 @@ def get_grades(db: Session = Depends(get_db)) -> list[GradeOut]:
                             title_en=c.title_en,
                             title_hi=c.title_hi,
                             order_index=c.order_index,
-                            unit_count=len(c.entries),
+                            unit_count=len([e for e in c.entries if e.rights_cleared]),  # NEW
                         )
                         for c in sorted(s.chapters, key=lambda c: c.order_index)
                     ],
@@ -42,7 +54,11 @@ def get_grades(db: Session = Depends(get_db)) -> list[GradeOut]:
 
 
 @router.get("/chapters/{chapter_id}", response_model=ChapterDetailOut)
-def get_chapter(chapter_id: int, db: Session = Depends(get_db)) -> ChapterDetailOut:
+def get_chapter(
+    chapter_id: int,
+    current_user: User = Depends(require_authenticated),  # NEW
+    db: Session = Depends(get_db),
+) -> ChapterDetailOut:
     chapter = get_chapter_detail(db, chapter_id)
     if not chapter:
         raise HTTPException(status_code=404, detail="Chapter not found.")
@@ -62,5 +78,6 @@ def get_chapter(chapter_id: int, db: Session = Depends(get_db)) -> ChapterDetail
                 verified=e.verified,
             )
             for e in chapter.entries
+            if e.rights_cleared  # NEW
         ],
     )

@@ -174,7 +174,7 @@
     "notDownloaded": "Not downloaded",
     "clearOfflineData": "Clear all offline data",
     "loadingBody": "Loading dataset statistics…",
-    "downloadHint": "Downloads a .doc study guide (notes only) and caches the category for offline use."
+    "downloadHint": "This saves a .json file to your Downloads folder AND lets the app work offline for that category."
   },
   "about": {
     "title": "About & Confidence",

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 """
+MODIFIED FILE -- your existing scripts/seed_curriculum.py with only its
+error-message text updated (marked below) to point at the new Alembic +
+seed_reference_data.py flow instead of the removed init_db.py behavior.
+No logic changed.
 Seeds a small, illustrative Grade -> Subject -> Chapter tree and links it to
 rows already imported by scripts/import_dataset.py.
 
@@ -53,7 +57,7 @@ def seed() -> None:
         for grade_number, subj_en, subj_hi, icon, chapters in PLAN:
             grade = db.query(CurriculumGrade).filter(CurriculumGrade.grade_number == grade_number).first()
             if not grade:
-                print(f"Skipping grade {grade_number}: not found (run backend/app/database/init_db.py first)")
+                print(f"Skipping grade {grade_number}: not found (run `alembic upgrade head` then `python scripts/seed_reference_data.py` first)")
                 continue
 
             subject = (

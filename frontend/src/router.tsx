@@ -26,6 +26,7 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 const Login = lazy(() => import("@/pages/Login"));       // NEW
 const Register = lazy(() => import("@/pages/Register")); // NEW
 const Profile = lazy(() => import("@/pages/Profile"));   // NEW
+const AdminPage = lazy(() => import("@/admin/AdminPage"));
 
 function SuspenseFallback() {
   const { t } = useI18n();
@@ -61,6 +62,14 @@ const router = createBrowserRouter([
       },
       { path: "*", element: withSuspense(<NotFound />) },
     ],
+  },
+  {
+    path: "/admin",
+    element: withSuspense(
+      <ProtectedRoute roles={["admin"]}>
+        <AdminPage />
+      </ProtectedRoute>,
+    ),
   },
 ]);
 

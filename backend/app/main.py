@@ -1,8 +1,7 @@
 """
-MODIFIED FILE -- your existing backend/app/main.py with exactly two
-additions, both marked "NEW" below: importing the auth router, and
-including it. Nothing else changed -- every existing route, middleware,
-and exception handler is untouched.
+MODIFIED FILE -- your existing backend/app/main.py (already updated once
+before for auth). This round adds the four admin routers -- every addition
+marked "NEW" below. Nothing else changed.
 """
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -11,7 +10,8 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.routes import curriculum, dataset, feedback, flashcards, health, languages, translations
-from app.api.routes import auth  # NEW
+from app.api.routes import auth
+from app.api.routes import admin_users, admin_dataset, admin_curriculum, admin_dashboard  # NEW
 from app.core.config import settings
 from app.core.logging_config import configure_logging, get_logger
 from app.core.rate_limit import RateLimitMiddleware
@@ -77,7 +77,11 @@ app.include_router(dataset.router, prefix=settings.API_V1_PREFIX)
 app.include_router(curriculum.router, prefix=settings.API_V1_PREFIX)
 app.include_router(flashcards.router, prefix=settings.API_V1_PREFIX)
 app.include_router(feedback.router, prefix=settings.API_V1_PREFIX)
-app.include_router(auth.router, prefix=settings.API_V1_PREFIX)  # NEW
+app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
+app.include_router(admin_users.router, prefix=settings.API_V1_PREFIX)          # NEW
+app.include_router(admin_dataset.router, prefix=settings.API_V1_PREFIX)        # NEW
+app.include_router(admin_curriculum.router, prefix=settings.API_V1_PREFIX)     # NEW
+app.include_router(admin_dashboard.router, prefix=settings.API_V1_PREFIX)      # NEW
 
 
 @app.get("/", tags=["health"])

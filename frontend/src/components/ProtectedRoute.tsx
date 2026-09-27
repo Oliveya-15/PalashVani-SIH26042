@@ -5,12 +5,17 @@ import { useAuth } from "@/hooks/useAuth";
 import { LoadingState } from "@/components/LoadingState";
 import { useI18n } from "@/i18n/I18nProvider";
 
-export function ProtectedRoute({ children }: { children: JSX.Element }) {
-  const { isAuthenticated, isLoading } = useAuth();
+import type { UserRole } from "@/types";
+
+export function ProtectedRoute({ children, roles }: { children: JSX.Element; roles?: UserRole[] }) {
+  const { isAuthenticated, isLoading, user } = useAuth();
   const { t } = useI18n();
   const location = useLocation();
 
   if (isLoading) return <LoadingState label={t("common.loading")} />;
   if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />;
+  if (roles && !roles.includes(user?.role ?? "student")) {
+    return <Navigate to="/" replace />;
+  }
   return children;
 }

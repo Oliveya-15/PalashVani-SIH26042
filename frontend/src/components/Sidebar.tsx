@@ -11,12 +11,13 @@ import {
   MessageSquare,
   Menu,
   X,
-  LogIn,   
-  LogOut,  
-  UserCircle, 
+  LogIn,
+  LogOut,
+  UserCircle,
+  ShieldCheck,
 } from "lucide-react";
 import { useI18n } from "@/i18n/I18nProvider";
-import { useAuth } from "@/hooks/useAuth"; 
+import { useAuth } from "@/hooks/useAuth";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const ROUTES = [
@@ -31,7 +32,7 @@ const ROUTES = [
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useI18n();
-  const { user, isAuthenticated, logout } = useAuth(); 
+  const { user, isAuthenticated, logout } = useAuth();
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
@@ -40,7 +41,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Original Logo format */}
+      {/* Preferred Full Logo Styling */}
       <NavLink to="/" className="flex items-center gap-2 px-2 py-1" aria-label="PalashVani home" onClick={onNavigate}>
         <img src="/full_logo.png" alt="PalashVani" className="h-12 w-auto object-contain" />
       </NavLink>
@@ -60,6 +61,18 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         {/* Auth Block */}
         {isAuthenticated && user ? (
           <div className="flex flex-col gap-2">
+            {/* Admin Console Link (shown only for admin users) */}
+            {user.role === "admin" && (
+              <NavLink
+                to="/admin"
+                onClick={onNavigate}
+                className="flex items-center gap-3 rounded-xl bg-amber-50 px-3 py-2.5 text-sm font-semibold text-amber-800 transition-colors hover:bg-amber-100"
+              >
+                <ShieldCheck size={18} aria-hidden="true" />
+                Admin console
+              </NavLink>
+            )}
+
             <NavLink
               to="/profile"
               onClick={onNavigate}
@@ -72,7 +85,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               </div>
             </NavLink>
             
-            {/* UPDATED: Logout button with subtle red hover effect */}
+            {/* Logout button with subtle red hover effect */}
             <button
               type="button"
               onClick={() => {
@@ -86,7 +99,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             </button>
           </div>
         ) : (
-          /* UPDATED: Animated Semi-circle Login Button with zoom and lighter green hover */
+          /* Animated Semi-circle Login Button with zoom and lighter green hover */
           <NavLink
             to="/login"
             onClick={onNavigate}

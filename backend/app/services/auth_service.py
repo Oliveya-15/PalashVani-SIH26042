@@ -19,6 +19,7 @@ from app.core.security import create_access_token, decode_access_token, hash_pas
 from app.models.user import User
 from app.repositories import user_repo
 from app.schemas.auth_schemas import LoginRequest, RegisterRequest
+from app.services.activity_service import record_activity
 
 _bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -37,6 +38,7 @@ def register(db: Session, payload: RegisterRequest) -> tuple[User, str]:
         district=payload.district or "",
     )
     token = create_access_token(user.id, user.role)
+    record_activity(db, "user_registered", user_id=user.id, entity_type="user", entity_id=user.id, detail=user.role)
     return user, token
 
 
@@ -47,6 +49,7 @@ def login(db: Session, payload: LoginRequest) -> tuple[User, str]:
     if not user.is_active:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "This account has been deactivated.")
     token = create_access_token(user.id, user.role)
+    record_activity(db, "user_logged_in", user_id=user.id, entity_type="user", entity_id=user.id)
     return user, token
 
 
