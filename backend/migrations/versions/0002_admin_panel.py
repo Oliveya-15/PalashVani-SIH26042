@@ -3,13 +3,13 @@
 Adds exactly what the admin panel needs on top of the 0001 baseline:
 
   - translation_entries.rights_cleared, .rights_note   (copyright gate)
-  - feedback.user_id                                     (who submitted it)
-  - translation_history.user_id                          (who ran it)
-  - users table                                          (if not already
+  - feedback.user_id                                   (who submitted it)
+  - translation_history.user_id                        (who ran it)
+  - users table                                        (if not already
     created by the earlier login/register update -- checked defensively
     below so this migration is safe to run whether or not that update's
     create_all() already made it)
-  - audit_log table                                      (admin action log)
+  - audit_log table                                    (admin action log)
 
 Written defensively (checks what already exists before acting) because
 different deployments may be at slightly different starting points --
@@ -35,7 +35,10 @@ def _has_table(name: str) -> bool:
 
 def _has_column(table: str, column: str) -> bool:
     bind = op.get_bind()
-    return any(c["name"] == column for c in sa.inspect(bind).get_columns(table))
+    inspector = sa.inspect(bind)
+    if not inspector.has_table(table):
+        return False
+    return any(c["name"] == column for c in inspector.get_columns(table))
 
 
 def upgrade() -> None:
