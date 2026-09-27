@@ -59,28 +59,31 @@ def upgrade() -> None:
         op.create_index("ix_users_email", "users", ["email"], unique=True)
 
     # --- translation_entries: copyright / rights-clearance gate ---
-    if not _has_column("translation_entries", "rights_cleared"):
-        with op.batch_alter_table("translation_entries") as batch_op:
-            batch_op.add_column(
-                sa.Column("rights_cleared", sa.Boolean(), nullable=False, server_default=sa.true())
-            )
-    if not _has_column("translation_entries", "rights_note"):
-        with op.batch_alter_table("translation_entries") as batch_op:
-            batch_op.add_column(
-                sa.Column("rights_note", sa.String(length=300), nullable=False, server_default="")
-            )
+    if _has_table("translation_entries"):
+        if not _has_column("translation_entries", "rights_cleared"):
+            with op.batch_alter_table("translation_entries") as batch_op:
+                batch_op.add_column(
+                    sa.Column("rights_cleared", sa.Boolean(), nullable=False, server_default=sa.true())
+                )
+        if not _has_column("translation_entries", "rights_note"):
+            with op.batch_alter_table("translation_entries") as batch_op:
+                batch_op.add_column(
+                    sa.Column("rights_note", sa.String(length=300), nullable=False, server_default="")
+                )
 
     # --- feedback: attribute to the submitting user ---
-    if not _has_column("feedback", "user_id"):
-        with op.batch_alter_table("feedback") as batch_op:
-            batch_op.add_column(sa.Column("user_id", sa.Integer(), nullable=True))
-            batch_op.create_foreign_key("fk_feedback_user_id", "users", ["user_id"], ["id"])
+    if _has_table("feedback"):
+        if not _has_column("feedback", "user_id"):
+            with op.batch_alter_table("feedback") as batch_op:
+                batch_op.add_column(sa.Column("user_id", sa.Integer(), nullable=True))
+                batch_op.create_foreign_key("fk_feedback_user_id", "users", ["user_id"], ["id"])
 
     # --- translation_history: attribute to the requesting user ---
-    if not _has_column("translation_history", "user_id"):
-        with op.batch_alter_table("translation_history") as batch_op:
-            batch_op.add_column(sa.Column("user_id", sa.Integer(), nullable=True))
-            batch_op.create_foreign_key("fk_translation_history_user_id", "users", ["user_id"], ["id"])
+    if _has_table("translation_history"):
+        if not _has_column("translation_history", "user_id"):
+            with op.batch_alter_table("translation_history") as batch_op:
+                batch_op.add_column(sa.Column("user_id", sa.Integer(), nullable=True))
+                batch_op.create_foreign_key("fk_translation_history_user_id", "users", ["user_id"], ["id"])
 
     # --- audit_log: new table for admin action history ---
     if not _has_table("audit_log"):
