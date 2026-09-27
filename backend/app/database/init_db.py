@@ -32,12 +32,12 @@ from app.models.models import CurriculumGrade, Language
 logger = get_logger("init_db")
 
 LANGUAGES = [
-    # code,      name_en,        name_hi,          script,        is_tribal, status,    bhashini
-    ("hi",       "Hindi",        "हिन्दी",           "Devanagari",  False,     "active",  True),
-    ("en",       "English",      "अंग्रेज़ी",          "Latin",       False,     "active",  True),
-    ("mundari",  "Mundari",      "मुंडारी",           "Devanagari",  True,      "active",  False),
-    ("ho",       "Ho",           "हो",               "Warang Citi / Devanagari", True, "planned", False),
-    ("santali",  "Santali",      "संताली",           "Ol Chiki / Devanagari",    True, "planned", False),
+    # code,       name_en,        name_hi,          script,        is_tribal, status,    bhashini
+    ("hi",        "Hindi",        "हिन्दी",          "Devanagari",  False,     "active",   True),
+    ("en",        "English",      "अंग्रेज़ी",          "Latin",       False,     "active",   True),
+    ("mundari",   "Mundari",      "मुंडारी",          "Devanagari",  True,      "active",   False),
+    ("ho",        "Ho",           "हो",               "Warang Citi / Devanagari", True, "planned", False),
+    ("santali",   "Santali",      "संताली",          "Ol Chiki / Devanagari",    True, "planned", False),
 ]
 
 GRADES = [
