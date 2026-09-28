@@ -20,9 +20,11 @@ from app.core.config import settings
 from app.database.session import Base
 
 # Import every model module so Base.metadata is fully populated.
-from app.models import models  # noqa: F401  (languages, curriculum, translation_entries, history, feedback, dataset_metadata)
-from app.models import user  # noqa: F401  (users)
-from app.models import audit_log  # noqa: F401  (audit_log)
+# Import every model module so Base.metadata is fully populated.
+from app.models import models  # noqa: F401
+from app.models import user  # noqa: F401
+from app.models import audit_log  # noqa: F401
+from app.models import user_activity  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:
