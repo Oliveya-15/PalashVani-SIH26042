@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     api.auth
       .me(token)
-      .then((profile) => {
+      .then((profile: AuthUser) => {
         if (!cancelled) setUser(profile);
       })
       .catch(() => {
