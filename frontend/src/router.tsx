@@ -42,14 +42,37 @@ const router = createBrowserRouter([
     element: <MainLayout />,
     children: [
       { path: "/", element: withSuspense(<Home />) },
-      { path: "/translate", element: withSuspense(<Translate />) },
-      { path: "/search", element: withSuspense(<Search />) },
-      { path: "/curriculum", element: withSuspense(<Curriculum />) },
-      { path: "/curriculum/chapters/:chapterId", element: withSuspense(<ChapterDetail />) },
-      { path: "/flashcards", element: withSuspense(<Flashcards />) },
-      { path: "/dataset", element: withSuspense(<Dataset />) },
+      // FIXED: Wrap content routes in ProtectedRoute so they redirect to login
+      { 
+        path: "/translate", 
+        element: withSuspense(<ProtectedRoute><Translate /></ProtectedRoute>) 
+      },
+      { 
+        path: "/search", 
+        element: withSuspense(<ProtectedRoute><Search /></ProtectedRoute>) 
+      },
+      { 
+        path: "/curriculum", 
+        element: withSuspense(<ProtectedRoute><Curriculum /></ProtectedRoute>) 
+      },
+      { 
+        path: "/curriculum/chapters/:chapterId", 
+        element: withSuspense(<ProtectedRoute><ChapterDetail /></ProtectedRoute>) 
+      },
+      { 
+        path: "/flashcards", 
+        element: withSuspense(<ProtectedRoute><Flashcards /></ProtectedRoute>) 
+      },
+      { 
+        // Dataset requires a teacher or admin account
+        path: "/dataset", 
+        element: withSuspense(<ProtectedRoute roles={["teacher", "admin"]}><Dataset /></ProtectedRoute>) 
+      },
       { path: "/about", element: withSuspense(<About />) },
-      { path: "/feedback", element: withSuspense(<Feedback />) },
+      { 
+        path: "/feedback", 
+        element: withSuspense(<ProtectedRoute><Feedback /></ProtectedRoute>) 
+      },
       { path: "/login", element: withSuspense(<Login />) },       // NEW
       { path: "/register", element: withSuspense(<Register />) }, // NEW
       {
