@@ -38,19 +38,24 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  // FIXED: Automatically retrieve the auth token from localStorage.
+  // The AuthProvider saves the token under the key "palashvani.authToken".
+  const token = typeof window !== "undefined" ? localStorage.getItem("palashvani.authToken") : null;
+
+  // FIXED: Build the headers dynamically, merging Content-Type, the
+  // Authorization header (if a token exists), and any custom headers
+  // passed by the specific API call.
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options?.headers || {}),
+  };
+
   let response: Response;
   try {
     response = await fetch(`${API_BASE}${path}`, {
-      // FIXED: headers must be merged *inside* one object -- spreading
-      // ...options after a separate `headers:` key would silently drop
-      // Content-Type whenever a caller (e.g. an authenticated request)
-      // also passes its own headers, since the later `...options` spread
-      // used to replace the whole `headers` object instead of merging
-      // into it. This form always merges correctly, and every existing
-      // call site (which passes no custom headers) behaves exactly as
-      // before.
       ...options,
-      headers: { "Content-Type": "application/json", ...(options?.headers || {}) },
+      headers, // Use the newly constructed headers object
     });
   } catch {
     throw new ApiError(
