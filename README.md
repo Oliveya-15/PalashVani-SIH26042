@@ -1,12 +1,11 @@
 <div align="center">
 
-![PalashVani Logo](public/full_logo.png)
+<img src="public/full_logo.png" alt="PalashVani Logo" width="280">
 
-# **PalashVani**
 ### *Hindi ↔ Mundari Translation System for Mother Tongue-Based Primary Education*
 
 [![Smart India Hackathon 2026](https://img.shields.io/badge/SIH-2026-FF6B6B?style=for-the-badge)](https://sih.gov.in)
-[![Problem Statement](https://img.shields.io/badge/PS-26042-4ECDC4?style=for-the-badge)](https://sih.gov.in/sih2026PS)
+[![Problem Statement](https://img.shields.io/badge/PS-26042-4ECDC4?style=for-the-badge)](https://sih.gov.in/sih26042PS)
 [![Live Demo](https://img.shields.io/badge/Live-Demo-00D9FF?style=for-the-badge)](https://palashvani-sih26042.vercel.app/)
 [![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/Oliveya-15/PalashVani-SIH26042)
 
@@ -124,7 +123,7 @@ A **verified-first, offline-capable translation system** that:
 
 </div>
 
-![System Architecture](public/architecture-diagram.svg)
+![System Architecture](public/architecture-diagram.png)
 
 ### **Three-Tier Architecture**
 
@@ -189,7 +188,7 @@ A **verified-first, offline-capable translation system** that:
 
 </div>
 
-![Translation Pipeline](public/translation-pipeline.svg)
+![Translation Pipeline](public/translation-pipeline.png)
 
 ### **Four-Stage Hybrid Pipeline**
 
