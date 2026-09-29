@@ -1,6 +1,6 @@
 <div align="center">
 
-![PalashVani Logo](public/logo.png)
+![PalashVani Logo](public/full_logo.png)
 
 # **PalashVani**
 ### *Hindi ↔ Mundari Translation System for Mother Tongue-Based Primary Education*
