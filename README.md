@@ -1,380 +1,207 @@
-# PalashVani
+<div align="center">
 
-**Hindi → Mundari translation and mother-tongue FLN classroom companion.**
-Built for Smart India Hackathon 2026, Problem Statement **SIH26042** — *"AI-
-Powered Vernacular Pedagogy and Real-Time Translation Tool for Mother
-Tongue-Based Primary Education,"* for Jharkhand's PALASH primary-schools
-network.
+![PalashVani Logo](public/logo.png)
 
-> Every translation this app produces says exactly how it was made:
-> a verified dataset match, a fuzzy match, or an AI-assisted semantic
-> match — and it never silently guesses. See [`docs/ai-pipeline.md`](docs/ai-pipeline.md).
+# **PalashVani**
+### *Hindi ↔ Mundari Translation System for Mother Tongue-Based Primary Education*
 
----
+[![Smart India Hackathon 2026](https://img.shields.io/badge/SIH-2026-FF6B6B?style=for-the-badge)](https://sih.gov.in)
+[![Problem Statement](https://img.shields.io/badge/PS-26042-4ECDC4?style=for-the-badge)](https://sih.gov.in/sih2026PS)
+[![Live Demo](https://img.shields.io/badge/Live-Demo-00D9FF?style=for-the-badge)](https://palashvani-sih26042.vercel.app/)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/Oliveya-15/PalashVani-SIH26042)
 
-## Table of contents
+**Built for Jharkhand's PALASH Programme • 1,041+ Schools • 5,000+ Addressable**
 
-- [Problem Statement](#problem-statement)
-- [Solution](#solution)
-- [Key Features](#key-features)
-- [Technology Stack](#technology-stack)
-- [Architecture](#architecture)
-- [Project Structure](#project-structure)
-- [Prerequisites](#prerequisites)
-- [Installation (Windows / VS Code)](#installation-windows--vs-code)
-- [Database Setup](#database-setup)
-- [Dataset Setup](#dataset-setup)
-- [Environment Variables](#environment-variables)
-- [Running the Backend](#running-the-backend)
-- [Running the Frontend](#running-the-frontend)
-- [Running Tests](#running-tests)
-- [Production Build](#production-build)
-- [API Documentation](#api-documentation)
-- [AI/NLP Pipeline](#ainlp-pipeline)
-- [Dataset Information](#dataset-information)
-- [Voice & Scan Features](#voice--scan-features)
-- [SEO](#seo)
-- [Security](#security)
-- [Troubleshooting](#troubleshooting)
-- [Limitations](#limitations)
-- [Future Scope](#future-scope)
-- [Academic / Viva Explanation](#academic--viva-explanation)
-- [License](#license)
+[🚀 Live Demo](https://palashvani-sih26042.vercel.app/) • [🔐 Admin Panel](https://palashvani-sih26042-admin.vercel.app/) • [📖 Documentation](docs/) • [💬 Feedback](#feedback)
+
+</div>
 
 ---
 
-## Problem Statement
-
-Over 5,000 tribal-area primary schools in Jharkhand teach in a language
-many children don't speak at home, while the Hindi-medium-trained teachers
-posted to them often have no fluency in Ho, Mundari, or Santali. Digital
-NLP resources for these languages remain limited, and existing edtech is
-online-only and Hindi/English-first. Full text: [`docs/demo.md`](docs/demo.md)
-and the original PPT (`SIH26042_Final.pptx`, supplied separately).
-
-## Solution
-
-PalashVani lets a teacher type, speak, or photograph Hindi classroom text
-and get a Mundari result — sourced from a verified, curated dictionary
-first, with AI-assisted semantic matching only when no dataset match
-exists, and an honest "no verified match" when neither can answer. The
-same verified phrases are also organised into a Grade → Subject → Chapter
-browsing structure, a flashcard practice mode, and a searchable dictionary
-— all usable offline once a category has been downloaded once.
-
-**Language choice:** Mundari was chosen as the prototype language (Hindi →
-Mundari direction) because it has the strongest available reference
-material of the three PPT-named languages; the architecture (see
-`languages` table, `docs/database.md`) already supports adding Ho and
-Santali the same way once a corpus exists for each — nothing about the
-code is Mundari-specific.
-
-## Key Features
-
-- **Verified-first hybrid translation** — normalize → exact match → fuzzy
-  match → optional AI semantic match → honest "no match." Never a silent
-  guess. ([`docs/ai-pipeline.md`](docs/ai-pipeline.md))
-- **Scan & Translate** — photograph or upload a page of Hindi text;
-  Tesseract.js extracts it entirely in the browser (no server upload, no
-  paid OCR API).
-- **Voice input & text-to-speech** — browser-native Web Speech API, with
-  real feature detection and honest "not supported here" states.
-- **Searchable dictionary** — paginated, filterable, debounced search over
-  the verified corpus.
-- **Curriculum browser** — Grade → Subject → Chapter, reusing the same
-  verified rows as content units.
-- **Flashcards** — flip-card vocabulary practice by category.
-- **Dataset & Offline page** — real (not fabricated) per-language counts
-  and category breakdown, plus one-click offline content packs via the
-  browser's Cache API.
-- **Bilingual UI** — complete English/Hindi interface via a lightweight
-  custom i18n layer (182 keys, `frontend/src/i18n/`).
-- **Sidebar navigation** — fixed sidebar on desktop, slide-out drawer on
-  mobile — full keyboard navigation, visible focus states,
-  `prefers-reduced-motion` support, semantic HTML throughout.
-- **Zero paid dependencies** — see [Security](#security) and
-  [`docs/limitations.md`](docs/limitations.md).
-
-## Technology Stack
-
-| Layer | Choice | Why (see `docs/architecture.md` for the full rationale) |
-|---|---|---|
-| Frontend | React + TypeScript + Vite + Tailwind CSS | Fast dev loop, strict typing, small production bundles |
-| Routing | React Router v6 (lazy-loaded routes) | Code-splitting for low-end classroom devices |
-| Server state | TanStack Query | Caching, loading/error states, no hand-rolled data fetching |
-| Backend | Python 3 + FastAPI | Free automatic OpenAPI docs, async, Pydantic validation — matches the PPT's own tech slide |
-| Database | SQLite (default) → PostgreSQL-ready | Zero setup for local/offline use; one env var to migrate |
-| AI/NLP | `sentence-transformers` (MiniLM, optional) + `rapidfuzz`/`difflib` | Real semantic matching, CPU-only, fully offline after first model download |
-| OCR | Tesseract.js (browser, WASM) | Zero-cost, no server round-trip for images |
-| Voice | Web Speech API (browser-native) | Zero-cost, no paid speech API required |
-| Testing | Pytest + httpx (backend), Vitest + Testing Library (frontend) | |
-
-## Architecture
-
-See [`docs/architecture.md`](docs/architecture.md) for the full diagram and
-every major design decision explained. One-line summary:
-
-```
-Teacher's browser → React frontend → REST API → FastAPI backend
-   → hybrid translation pipeline → SQLite/PostgreSQL
-```
-
-## Project Structure
-
-```
-palashvani/
-├── frontend/           React + TypeScript + Vite + Tailwind app
-│   └── src/{components,pages,hooks,i18n,api,types,utils,layouts}
-├── backend/             FastAPI app
-│   └── app/{api,core,models,schemas,services,repositories,translation,ai,database}
-├── data/                 raw/ (source CSVs) · processed/ (generated DB, gitignored)
-├── scripts/              validate_dataset.py · import_dataset.py · seed_curriculum.py
-├── docs/                  architecture, api, database, ai-pipeline, limitations, deployment, demo
-├── docker-compose.yml     optional
-├── .env.example
-└── README.md              (this file)
-```
-
-Every folder exists for a stated reason — see `docs/architecture.md` and
-`docs/database.md` for "why this file/table exists" call-outs throughout.
-
-## Prerequisites
-
-| Tool | Version | Check with |
-|---|---|---|
-| Python | 3.11+ | `python --version` |
-| Node.js | 20+ | `node --version` |
-| npm | 10+ (ships with Node) | `npm --version` |
-| Git | any recent | `git --version` |
-| Docker Desktop | optional, only if you want containers | `docker --version` |
+## 📖 **The Story Behind PalashVani**
 
-No paid account, API key, or database server is required for local use.
+> *This README doesn't start with installation steps; it starts with a story worth reading.*
 
-## Installation (Windows / VS Code)
+### **Round One: The Poster I Was Too Late For**
 
-Open the project folder in VS Code, then open **two PowerShell terminals**
-(Terminal → New Terminal, then click the `+` again for a second one).
+I did my undergraduate degree (BCA, 2022–25) at a tier-three college, in a batch where "hackathon" wasn't really part of the vocabulary yet — not because nobody was interested, just because the information rarely reached us first. In my final year, I spotted a hackathon poster near the main building on an otherwise ordinary day. The event was already underway, the deadline days out, and my department hadn't heard a word about it. By the time I understood what I was looking at, it was too late to enter.
 
-**Terminal 1 — backend setup:**
+Not long after, I left that college for a new city and a master's program — a move that still comes with a pinch of nostalgia, since that campus holds a lot of good memories. New city, new people, a version of myself that wasn't naturally built for walking into rooms and making friends on day one. It took time to settle in. It always does. It also, eventually, worked.
 
-```powershell
-cd backend
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
+### **Round Two: Building From Scratch, On Purpose**
 
-> If PowerShell blocks the activation script with an execution-policy
-> error, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once,
-> then retry.
+Then came MCA, and with it, Smart India Hackathon — problem statement **SIH26042**. This time, I wasn't going to let logistics beat me to it.
 
-**Terminal 2 — frontend setup:**
+I put together a team, and from day one I was the one researching the problem statement, drafting the pitch, and obsessing over slide design (perfectionist tendencies, fully on display). Our mentor reviewed the presentation and liked it. So did everyone else who saw it.
 
-```powershell
-cd frontend
-npm install
-```
+Then came a scheduling mix-up — the kind every group project eventually runs into. A registration form got crossed with another one, a confirmation got lost in the scroll of a very active group chat, and by the time the mistake surfaced, the internal round's dates had already been set — without us in the loop. Weeks of preparation, technically homeless.
 
-(macOS/Linux: replace `.venv\Scripts\Activate.ps1` with `source .venv/bin/activate`; every other command is identical.)
+### **The Night It Nearly Fell Apart**
 
-## Database Setup
+I won't pretend that part didn't sting. In our team chat that night, I said, plainly, that I was stepping back from it — the kind of thing that reads harsher over text than it's meant to. For a moment, I worried I'd damaged more than just our shot at the hackathon.
 
-Nothing to install. The backend creates `data/processed/palashvani.db`
-(SQLite) automatically on first run, with all tables and reference rows
-(languages, grades) — see `backend/app/database/init_db.py`. To use
-PostgreSQL instead, see [`docs/database.md`](docs/database.md).
+I hadn't. A day later, a teammate pulled me out to visit a place we'd planned to see together before hackathon prep took over our schedules — the same day the internal round was happening without us. We went anyway. It was good. We still are.
 
-## Dataset Setup
+Around the same time, my older brother — a few years into his own career, and someone I've always leaned on for a straight, steady opinion — told me it genuinely didn't matter, that something better was on its way, and the only job left was to keep going. I believed him. I still do.
 
-Run these **once**, from the project root, with the backend's virtual
-environment active (Terminal 1 from above):
+We later heard the internal round itself ran long and a little chaotically for the teams that did make it. It didn't change our outcome. It did put things in perspective.
 
-```powershell
-cd ..                                                 # back to the project root
-python scripts/validate_dataset.py data/raw/hindi_mundari_seed.csv
-python scripts/import_dataset.py data/raw/hindi_mundari_seed.csv --target mundari
-python scripts/seed_curriculum.py
-```
+### **The Real Finish Line**
 
-This validates, then imports, the 57-row sourced seed corpus (see
-[`data/README.md`](data/README.md) for exactly where every row comes from),
-then links a subset of it into the Curriculum browsing structure. All
-three scripts are safe to re-run at any time.
+Here's the part I'm actually proud of: **I never stopped building.**
 
-## Environment Variables
+No internal round, no certificate, no login ID to prove any of it — and the work continued anyway. I took the project from research through design through deployment on my own: frontend on **Vercel**, backend on **Render**, database on **Neon PostgreSQL**. I'm still refining it, still adding to it, well past the point where it would have "counted" for anything official.
 
-Copy `.env.example` to `.env` in the project root and adjust if needed —
-**every setting has a safe default**, so this step is optional for local
-use. Every variable is documented inline in `.env.example`. Highlights:
+This repository, **PalashVani**, is that project — built for SIH26042, minus the paperwork, plus everything that actually matters: the problem research, the design decisions, the late nights, **a working, deployed product.**
 
-| Variable | Default | Notes |
-|---|---|---|
-| `DATABASE_URL` | local SQLite file | See `docs/database.md` for PostgreSQL |
-| `ENABLE_SEMANTIC_SEARCH` | `true` | Set `false` to skip the optional AI model entirely |
-| `BHASHINI_ENABLED` | `false` | Optional external fallback, never required |
-| `CORS_ORIGINS` | `localhost:5173` | Update if you serve the frontend elsewhere |
+**Participation alone was never really the point.** A certificate proves you registered. It doesn't prove you can build. **This does.**
 
-## Running the Backend
+---
 
-Terminal 1 (venv active, inside `backend/`):
+<div align="center">
 
-```powershell
-uvicorn app.main:app --reload --port 8000
-```
+## 🎯 **What is PalashVani?**
 
-Leave this running. Swagger docs: http://localhost:8000/docs
+</div>
 
-## Running the Frontend
+**PalashVani** is a **hybrid Hindi ↔ Mundari translation system** designed to bridge the language gap in Jharkhand's tribal-area primary schools, where over **5,000 schools** teach in a language many children don't speak at home, and Hindi-medium trained teachers often lack fluency in Ho, Mundari, or Santali.
 
-Terminal 2 (inside `frontend/`):
+### **The Problem (SIH26042)**
 
-```powershell
-npm run dev
-```
+- **5,000+ tribal-area primary schools** in Jharkhand face a critical language barrier
+- Teachers are Hindi-medium trained, unfamiliar with tribal languages
+- Students receive instruction in a language they don't comprehend at home
+- Digital NLP resources for Ho, Mundari, and Santali remain severely limited
+- Existing edtech solutions are online-only and Hindi/English-first
 
-Open **http://localhost:5173** — the dev server proxies `/api` calls to
-the backend automatically (see `frontend/vite.config.ts`).
+### **Our Solution**
 
-## Running Tests
+A **verified-first, offline-capable translation system** that:
+- ✅ Prioritizes **verified corpus matches** over AI guessing
+- ✅ Uses **semantic AI (MiniLM-L12-v2)** as fallback, not first resort
+- ✅ Shows **honest confidence scores** — never silently guesses
+- ✅ Works **offline** after initial sync
+- ✅ Includes **admin panel** for content management with rights-clearance workflow
+- ✅ Features **client-side OCR** (Tesseract.js) and **browser-native voice I/O**
+- ✅ Built with **zero paid dependencies** — fully open source
 
-**Backend** (Terminal 1, inside `backend/`, venv active):
+---
 
-```powershell
-pytest
-```
+<div align="center">
 
-Runs against an isolated in-memory database (see `backend/tests/conftest.py`)
-— never touches your real `data/processed/palashvani.db`.
+## 🖼️ **Visual Overview**
 
-**Frontend** (Terminal 2, inside `frontend/`):
+</div>
 
-```powershell
-npm test
-```
+<table>
+<tr>
+<td width="50%">
 
-## Production Build
+### 📊 **Live Presentation**
+![Presentation Slide](public/presentation-preview.png)
+*Smart India Hackathon 2026 Submission*
 
-**Frontend:**
+[📥 Download Full PPT](PalashVani_SIH26042.pptx)
 
-```powershell
-cd frontend
-npm run build      # outputs static files to frontend/dist/
-npm run preview    # serve the production build locally to sanity-check it
-```
+</td>
+<td width="50%">
 
-**Backend:**
+### 💻 **Live Application**
+![App Screenshot](public/app-screenshot.png)
+*Translation interface with confidence scoring*
 
-```powershell
-cd backend
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
+[🚀 Try Live Demo →](https://palashvani-sih26042.vercel.app/)
 
-(drop `--reload`, which is a development-only flag). See
-[`docs/deployment.md`](docs/deployment.md) for hosting options (Vercel,
-Render, Docker), all free-tier compatible.
+</td>
+</tr>
+</table>
 
-## API Documentation
+---
 
-Auto-generated interactive docs at `/docs` (Swagger) and `/redoc` while the
-backend runs. Endpoint-by-endpoint explanation: [`docs/api.md`](docs/api.md).
-
-## AI/NLP Pipeline
-
-Full explanation, including exactly what is and isn't machine learning in
-this system and why: [`docs/ai-pipeline.md`](docs/ai-pipeline.md).
-
-## Dataset Information
-
-57 hand-sourced, citation-backed Hindi–Mundari pairs across 8 categories.
-Full sourcing, licensing notes, and how to import a larger production
-corpus: [`data/README.md`](data/README.md).
-
-## Voice & Scan Features
-
-Voice input/output uses the browser-native Web Speech API; Scan & Translate
-uses Tesseract.js (WASM OCR) entirely client-side. Both are feature-detected
-at runtime with honest "not supported in this browser" states — see
-`frontend/src/hooks/useSpeechRecognition.ts`,
-`useSpeechSynthesis.ts`, and `frontend/src/pages/Translate.tsx`. Browser
-support varies; Chrome/Edge on desktop or Android is most reliable.
-
-## SEO
-
-Semantic HTML, a proper heading hierarchy, descriptive `<title>`/meta
-description, Open Graph + Twitter card metadata, `robots.txt`, and
-`sitemap.xml` are all in `frontend/index.html` and `frontend/public/`.
-
-## Security
-
-- No secrets are committed anywhere; `.env` is gitignored and `.env.example`
-  contains no real values.
-- Input validation on every endpoint via Pydantic schemas.
-- CORS is explicitly allow-listed (`CORS_ORIGINS`), not wildcarded.
-- A dependency-free rate limiter (120 req/min/IP by default) —
-  `backend/app/core/rate_limit.py`.
-- Unhandled exceptions are logged server-side with full detail but return
-  only a generic message to the client — no stack traces ever reach the
-  browser (`backend/app/main.py`).
-- No paid API key is ever required for the core app to function; the one
-  optional external integration (Bhashini) is disabled unless explicitly
-  configured — see `backend/app/ai/bhashini_stub.py`.
-
-## Troubleshooting
-
-| Symptom | Fix |
-|---|---|
-| `uvicorn: command not found` | Activate the virtual environment first (`.venv\Scripts\Activate.ps1`) |
-| PowerShell won't run `Activate.ps1` | `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, then retry |
-| Frontend shows "Could not reach the PalashVani server" | Make sure Terminal 1's `uvicorn` is still running on port 8000 |
-| `pip install` fails on `sentence-transformers` | The app works without it — set `ENABLE_SEMANTIC_SEARCH=false` in `.env`, or simply ignore the failure and reinstall the rest with `pip install -r requirements.txt` minus that one line |
-| Translations always say "No verified match" | Run the [Dataset Setup](#dataset-setup) import scripts — the database starts empty until you do |
-| Port 5173 or 8000 already in use | `npm run dev -- --port 5174` / `uvicorn app.main:app --port 8001 --reload` (update the Vite proxy target accordingly) |
-| Voice/Scan buttons show "not supported" | Expected outside Chrome/Edge — see [Limitations](#limitations) |
-
-## Limitations
-
-Stated honestly, in full, in [`docs/limitations.md`](docs/limitations.md) —
-covering dataset size, translation quality, TTS accuracy, OCR accuracy,
-offline scope, and security scope.
-
-## Future Scope
-
-Ho and Santali corpora, a much larger verified Hindi-Mundari corpus via
-formal partnership (JCERT/PALASH, per the original PPT's rollout roadmap),
-a fine-tuned neural translation model, offline (on-device) speech
-synthesis, and a full installable-PWA service worker are the natural next
-steps on this same architecture — see the About page and
-`docs/limitations.md`.
-
-## Academic / Viva Explanation
-
-Short answers to the questions most likely to come up; see
-`docs/architecture.md` and `docs/ai-pipeline.md` for the full versions.
-
-- **"Why FastAPI?"** Free automatic OpenAPI docs, async support, Pydantic
-  validation — and it's what the source PPT's own tech slide specifies.
-- **"Why SQLite, not PostgreSQL?"** Zero setup for an offline classroom
-  tool; one environment variable migrates it later — see `docs/database.md`.
-- **"Is the AI real, or just string matching?"** Both, layered on purpose:
-  deterministic normalize/exact/fuzzy stages first (auditable, always
-  tried first), then a real sentence-embedding transformer
-  (`sentence-transformers`, MiniLM) for semantic matches the fuzzy stage
-  can't catch — see `docs/ai-pipeline.md`.
-- **"How is confidence calculated?"** Exact = 1.0; fuzzy = string
-  similarity ratio; semantic = cosine similarity between sentence
-  embeddings — bucketed into high/medium/low and always shown, plus a
-  separate `ai_assisted` flag.
-- **"What happens with no internet?"** Everything except the semantic
-  model's one-time download and the (disabled-by-default) Bhashini
-  fallback — see `docs/demo.md`, "If the internet is down at demo time."
-- **"How do you add Ho or Santali?"** Add a row to the `languages` table,
-  source and import a CSV in the same schema via
-  `scripts/import_dataset.py --target ho` — no other code changes needed.
-- **"What are the current limitations?"** See
-  [`docs/limitations.md`](docs/limitations.md) — stated in full, not
-  glossed over.
-
-## License
-
-MIT (see [`LICENSE`](LICENSE)) for the code. The seed dataset has its own,
-separate sourcing/licensing note — see [`data/README.md`](data/README.md).
+<div align="center">
+
+## 🏗️ **System Architecture**
+
+</div>
+
+![System Architecture](public/architecture-diagram.svg)
+
+### **Three-Tier Architecture**
+
+<table>
+<tr>
+<th width="33%">🖥️ Client Layer</th>
+<th width="33%">⚙️ API Layer</th>
+<th width="34%">💾 Data & AI Layer</th>
+</tr>
+<tr>
+<td valign="top">
+
+**Frontend**
+- React 18 + TypeScript
+- Vite build tool
+- Tailwind CSS
+- TanStack Query
+- React Router v6
+
+**Client-Side**
+- Tesseract.js OCR (WASM)
+- Web Speech API
+- Progressive Web App
+- Offline-ready
+
+</td>
+<td valign="top">
+
+**Backend**
+- Python 3.11+
+- FastAPI (async)
+- JWT Authentication
+- RBAC (Role-Based Access)
+- Alembic Migrations
+- Auto OpenAPI Docs
+- Rate Limiting
+
+</td>
+<td valign="top">
+
+**Database**
+- PostgreSQL (Neon.tech)
+- SQLite (development)
+- 57-row seed corpus
+- Admin-managed expansion
+
+**AI/ML**
+- sentence-transformers
+- MiniLM-L12-v2
+- RapidFuzz (fuzzy match)
+- CPU-only (no GPU)
+
+</td>
+</tr>
+</table>
+
+---
+
+<div align="center">
+
+## 🔄 **Translation Pipeline: Verified-First Approach**
+
+</div>
+
+![Translation Pipeline](public/translation-pipeline.svg)
+
+### **Four-Stage Hybrid Pipeline**
+
+```mermaid
+graph LR
+    A[Input<br/>Type/Speak/Scan] --> B[Stage 1:<br/>Exact Match<br/>100%]
+    B -->|No match?| C[Stage 2:<br/>Fuzzy Match<br/>70-99%]
+    C -->|Still no?| D[Stage 3:<br/>Semantic AI<br/>Variable]
+    D --> E[Stage 4:<br/>Confidence Flag<br/>Exact/Fuzzy/AI/None]
+    
+    style A fill:#E8F4F8
+    style B fill:#2C5F2D,color:#fff
+    style C fill:#F9E795
+    style D fill:#065A82,color:#fff
+    style E fill:#1E2761,color:#fff
