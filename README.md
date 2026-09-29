@@ -100,7 +100,7 @@ A **verified-first, offline-capable translation system** that:
 ![Presentation Slide](public/presentation-preview.png)
 *Smart India Hackathon 2026 Submission*
 
-[📥 Download Full PPT](PalashVani_SIH26042.pptx)
+[📥 Download Full PPT](public/PalashVani_SIH26042.pptx)
 
 </td>
 <td width="50%">
@@ -129,7 +129,7 @@ A **verified-first, offline-capable translation system** that:
 
 <table>
 <tr>
-<th width="33%">🖥️ Client Layer</th>
+<th width="33%">🖥️️ Client Layer</th>
 <th width="33%">⚙️ API Layer</th>
 <th width="34%">💾 Data & AI Layer</th>
 </tr>
@@ -187,8 +187,6 @@ A **verified-first, offline-capable translation system** that:
 ## 🔄 **Translation Pipeline: Verified-First Approach**
 
 </div>
-
-![Translation Pipeline](public/translation-pipeline.png)
 
 ### **Four-Stage Hybrid Pipeline**
 
