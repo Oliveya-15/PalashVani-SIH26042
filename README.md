@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="public/full_logo.png" alt="PalashVani" width="420"/>
+<img src="public/full_logo.png" alt="PalashVani" width="320"/>
 
 ### Hindi → Mundari translation and mother-tongue classroom companion
 **Built for Smart India Hackathon 2026 — Problem Statement SIH26042**
@@ -239,6 +239,7 @@ Every one of these choices is deliberate and documented — see `docs/architectu
 | | |
 |---|---|
 | 🌐 **App** | [palashvani-sih26042.vercel.app](https://palashvani-sih26042.vercel.app/) |
+| 🛡️ **Admin Panel** | [palashvani-sih26042-admin.vercel.app](https://palashvani-sih26042-admin.vercel.app/) |
 | ⚙️ **API docs** | [palashvani-sih26042-backend.onrender.com/docs](https://palashvani-sih26042-backend.onrender.com/docs) |
 | 📦 **Source** | [github.com/Oliveya-15/PalashVani-SIH26042](https://github.com/Oliveya-15/PalashVani-SIH26042) |
 

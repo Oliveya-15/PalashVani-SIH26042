@@ -20,19 +20,28 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { useAuth } from "@/hooks/useAuth";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
+// ADDED: allowedRoles to each route to control sidebar visibility
 const ROUTES = [
-  { to: "/", key: "nav.home", Icon: HomeIcon, end: true },
-  { to: "/translate", key: "nav.translate", Icon: Languages, end: false },
-  { to: "/search", key: "nav.search", Icon: BookOpen, end: false },
-  { to: "/curriculum", key: "nav.curriculum", Icon: GraduationCap, end: false },
-  { to: "/flashcards", key: "nav.flashcards", Icon: Layers, end: false },
-  { to: "/dataset", key: "nav.dataset", Icon: HardDriveDownload, end: false },
-  { to: "/about", key: "nav.about", Icon: Info, end: false },
+  { to: "/", key: "nav.home", Icon: HomeIcon, end: true, allowedRoles: ["student", "teacher", "admin"] },
+  { to: "/translate", key: "nav.translate", Icon: Languages, end: false, allowedRoles: ["student", "teacher", "admin"] },
+  { to: "/search", key: "nav.search", Icon: BookOpen, end: false, allowedRoles: ["student", "teacher", "admin"] },
+  { to: "/curriculum", key: "nav.curriculum", Icon: GraduationCap, end: false, allowedRoles: ["student", "teacher", "admin"] },
+  { to: "/flashcards", key: "nav.flashcards", Icon: Layers, end: false, allowedRoles: ["student", "teacher", "admin"] },
+  { to: "/dataset", key: "nav.dataset", Icon: HardDriveDownload, end: false, allowedRoles: ["teacher", "admin"] }, // Restricted
+  { to: "/about", key: "nav.about", Icon: Info, end: false, allowedRoles: ["student", "teacher", "admin"] },
 ];
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useI18n();
   const { user, isAuthenticated, logout } = useAuth();
+
+  // ADDED: Filter routes based on the current user's role
+  const visibleRoutes = ROUTES.filter((route) => {
+    // If no user is logged in (guest), treat them as a student (hides dataset)
+    // If you want guests to see even less, you can adjust this logic.
+    if (!user) return route.allowedRoles.includes("student");
+    return route.allowedRoles.includes(user.role);
+  });
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
@@ -47,7 +56,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </NavLink>
 
       <nav className="mt-8 flex-1 space-y-1" aria-label="Primary">
-        {ROUTES.map(({ to, key, Icon, end }) => (
+        {/* CHANGED: Map over visibleRoutes instead of ROUTES */}
+        {visibleRoutes.map(({ to, key, Icon, end }) => (
           <NavLink key={to} to={to} end={end} className={linkClass} onClick={onNavigate}>
             <Icon size={18} aria-hidden="true" />
             {t(key)}
